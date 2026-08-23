@@ -29,7 +29,7 @@ def unlock(req: UnlockRequest, user=Depends(get_current_user)):
     if hint.cost_points and user.xp < hint.cost_points:
         raise HTTPException(status_code=400, detail="Insufficient points to unlock")
     if hint.cost_points:
-        user.xp -= hint.cost_points
-        sess.add(user)
+        fresh_user = sess.query(User).filter(User.id == user.id).first()
+        fresh_user.xp -= hint.cost_points
     sess.commit()
     return {"hint_id": hint.id, "text": hint.text}

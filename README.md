@@ -8,7 +8,7 @@ This repository contains an MVP implementation with:
 - Frontend: React + TypeScript + Vite + Monaco Editor
 - Backend: FastAPI (Python) with SQLAlchemy models
 - Execution: self-hosted Docker-based executor (dev) and Celery tasks for asynchronous grading
-- Data: PostgreSQL (recommended) or SQLite for quick dev
+- Data: MySQL (recommended) or SQLite for quick dev
 - Async queue: Redis + Celery
 
 Key features implemented
@@ -39,7 +39,7 @@ Project layout
 
 Getting started (local development)
 ---------------------------------
-Prereqs: Docker (for Postgres/Redis and for executing code during grading), Python 3.11+, Node.js & npm (for frontend).
+Prereqs: Docker (for MySQL/Redis and for executing code during grading), Python 3.11+, Node.js & npm (for frontend).
 
 1) Start only DB and Redis (recommended for Windows dev so Celery/worker runs on host):
 
@@ -56,7 +56,7 @@ python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
 # set env vars (PowerShell)
-$env:DATABASE_URL = "postgresql://codecase:codecase@localhost:5432/codecase"
+$env:DATABASE_URL = "mysql+pymysql://codecase:codecase@localhost:3306/codecase"
 $env:CELERY_BROKER_URL = "redis://localhost:6379/0"
 $env:CELERY_RESULT_BACKEND = "redis://localhost:6379/0"
 $env:SECRET_KEY = "dev-secret"
@@ -112,7 +112,7 @@ Security considerations
 
 Production & deployment notes
 ----------------------------
-- Recommended production stack: PostgreSQL managed DB, Redis (managed), Kubernetes or managed container platform (Fly.io, Cloud Run, Render), and a dedicated executor pool.
+- Recommended production stack: MySQL managed DB, Redis (managed), Kubernetes or managed container platform (Fly.io, Cloud Run, Render), and a dedicated executor pool.
 - CI: add GitHub Actions to run tests, build images, and deploy.
 - Observability: Sentry for errors, Prometheus/Grafana for metrics, and centralized logs (ELK or a managed alternative).
 
