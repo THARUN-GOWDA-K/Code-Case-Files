@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getSqlCase } from '../lib/sqlCases'
+import { getSqlCase, getMySqlSubmissions } from '../lib/sqlCases'
+import { useAuth } from '../contexts/AuthContext'
 
 type Stage = {
   id: number
@@ -19,6 +20,14 @@ type SqlCaseDetail = {
   stages: Stage[]
 }
 
+type Submission = {
+  id: number
+  stage_id: number
+  correct: boolean
+  xp_awarded: number
+  submitted_at: string
+}
+
 const DIFFICULTY_STAMP: Record<string, { class: string; label: string }> = {
   easy: { class: 'stamp-easy', label: 'CLEARED' },
   medium: { class: 'stamp-medium', label: 'CONFIDENTIAL' },
@@ -27,9 +36,11 @@ const DIFFICULTY_STAMP: Record<string, { class: string; label: string }> = {
 
 export default function SqlCaseView() {
   const { slug } = useParams<{ slug: string }>()
+  const { user } = useAuth()
   const [caseData, setCaseData] = useState<SqlCaseDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [submissions, setSubmissions] = useState<Submission[]>([])
 
   useEffect(() => {
     if (!slug) return
@@ -38,6 +49,17 @@ export default function SqlCaseView() {
       .catch(() => setError('Case not found'))
       .finally(() => setLoading(false))
   }, [slug])
+
+  useEffect(() => {
+    if (!user) return
+    getMySqlSubmissions()
+      .then(setSubmissions)
+      .catch(() => setSubmissions([]))
+  }, [user])
+
+  const isStageCompleted = (stageId: number) => {
+    return submissions.some(sub => sub.stage_id === stageId && sub.correct)
+  }
 
   if (loading) {
     return (
@@ -104,6 +126,9 @@ export default function SqlCaseView() {
   }
 
   const difficulty = caseData.difficulty ? DIFFICULTY_STAMP[caseData.difficulty] : null
+
+  // Sort stages by order
+  const sortedStages = [...caseData.stages].sort((a, b) => a.order - b.order)
 
   return (
     <div>
@@ -172,7 +197,7 @@ export default function SqlCaseView() {
         INVESTIGATION STEPS
       </h3>
       
-      {caseData.stages.length === 0 ? (
+      {sortedStages.length === 0 ? (
         <div className="dossier-card" style={{ textAlign: 'center', padding: '3rem' }}>
           <p style={{ 
             color: 'var(--color-redacted)', 
@@ -188,7 +213,7 @@ export default function SqlCaseView() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {caseData.stages.map((s) => (
+          {sortedStages.map((s) => (
             <Link 
               key={s.id} 
               to={`/sql-stages/${s.id}`}
@@ -201,6 +226,7 @@ export default function SqlCaseView() {
                 justifyContent: 'space-between', 
                 padding: '1rem 1.5rem',
                 transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                border: isStageCompleted(s.id) ? '2px solid var(--color-verified)' : '1px solid var(--color-redacted)',
               }}>
                 <div style={{ 
                   fontWeight: 600, 
@@ -221,6 +247,16 @@ export default function SqlCaseView() {
                     [{s.order.toString().padStart(2, '0')}]
                   </span>
                   {s.title}
+                  {isStageCompleted(s.id) && (
+                    <span className="badge-stamp stamp-easy" style={{ 
+                      fontSize: '0.7rem', 
+                      padding: '0.2rem 0.5rem', 
+                      marginLeft: '0.5rem',
+                      transform: 'rotate(-5deg)',
+                    }}>
+                      SOLVED
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
                   <span style={{ 

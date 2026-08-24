@@ -126,3 +126,28 @@ def submit_sql_query(
         xp_awarded=xp_awarded,
         feedback=feedback,
     )
+
+
+# ── GET /my-submissions ─────────────────────────────────────────────────────
+
+@router.get("/my-submissions")
+def my_submissions(user=Depends(get_current_user)):
+    """Get all SQL submissions for the current authenticated user."""
+    if not user:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    
+    sess = get_session()
+    submissions = sess.query(SqldSubmission).filter_by(user_id=user.id).order_by(SqldSubmission.submitted_at.desc()).all()
+    
+    return [
+        {
+            "id": sub.id,
+            "stage_id": sub.stage_id,
+            "query": sub.query,
+            "correct": sub.correct,
+            "xp_awarded": sub.xp_awarded,
+            "feedback": sub.feedback,
+            "submitted_at": sub.submitted_at.isoformat() if sub.submitted_at else None,
+        }
+        for sub in submissions
+    ]

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Editor from '../components/Editor'
 import { getSqlStage, submitSqlQuery } from '../lib/sqlCases'
+import { useAuth } from '../contexts/AuthContext'
 
 type StageDetail = {
   id: number
@@ -23,6 +24,7 @@ type SubmitResult = {
 export default function SqlStageView() {
   const { id } = useParams<{ id: string }>()
   const stageId = Number(id)
+  const { refreshUser } = useAuth()
 
   const [stage, setStage] = useState<StageDetail | null>(null)
   const [loading, setLoading] = useState(true)
@@ -54,6 +56,10 @@ export default function SqlStageView() {
         setSubmitError(res.detail)
       } else {
         setResult(res as SubmitResult)
+        // Refresh user data to update XP in real-time
+        if (res.correct && res.xp_awarded > 0) {
+          await refreshUser()
+        }
       }
     } catch {
       setSubmitError('Network error — is the backend running?')

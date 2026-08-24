@@ -72,34 +72,56 @@ export default function Nav() {
         <nav className="desktop-nav" style={{
           gap: '1.5rem',
         }}>
-          <Link 
-            to="/" 
-            style={{
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <span style={{ 
+              color: 'var(--color-redacted)', 
+              fontSize: '0.8rem', 
               fontFamily: 'var(--font-display)',
-              textTransform: 'uppercase',
-              fontSize: '0.9rem',
               letterSpacing: '1px',
-              color: isActive('/') ? 'var(--color-clue)' : 'var(--color-redacted)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-          >
-            Cases
-          </Link>
-          <Link 
-            to="/sql-cases" 
-            style={{
+              textTransform: 'uppercase',
+            }}>
+              Programming:
+            </span>
+            <Link 
+              to="/" 
+              style={{
+                fontFamily: 'var(--font-display)',
+                textTransform: 'uppercase',
+                fontSize: '0.9rem',
+                letterSpacing: '1px',
+                color: isActive('/') ? 'var(--color-clue)' : 'var(--color-redacted)',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Cases
+            </Link>
+          </div>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+            <span style={{ 
+              color: 'var(--color-redacted)', 
+              fontSize: '0.8rem', 
               fontFamily: 'var(--font-display)',
-              textTransform: 'uppercase',
-              fontSize: '0.9rem',
               letterSpacing: '1px',
-              color: isActive('/sql-cases') ? 'var(--color-clue)' : 'var(--color-redacted)',
-              textDecoration: 'none',
-              transition: 'color 0.2s ease',
-            }}
-          >
-            SQL Cases
-          </Link>
+              textTransform: 'uppercase',
+            }}>
+              Database:
+            </span>
+            <Link 
+              to="/sql-cases" 
+              style={{
+                fontFamily: 'var(--font-display)',
+                textTransform: 'uppercase',
+                fontSize: '0.9rem',
+                letterSpacing: '1px',
+                color: isActive('/sql-cases') ? 'var(--color-clue)' : 'var(--color-redacted)',
+                textDecoration: 'none',
+                transition: 'color 0.2s ease',
+              }}
+            >
+              SQL Cases
+            </Link>
+          </div>
 
           {loading ? (
             <span style={{ color: 'var(--color-redacted)', fontSize: '0.9rem' }}>Loading...</span>
@@ -235,6 +257,17 @@ export default function Nav() {
             gap: '1rem',
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
           }}>
+            <div style={{ borderBottom: '1px solid var(--color-redacted)', paddingBottom: '0.5rem', marginBottom: '0.5rem' }}>
+              <span style={{ 
+                color: 'var(--color-redacted)', 
+                fontSize: '0.8rem', 
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+              }}>
+                Programming
+              </span>
+            </div>
             <Link 
               to="/" 
               onClick={() => setMobileMenuOpen(false)}
@@ -250,6 +283,17 @@ export default function Nav() {
             >
               Cases
             </Link>
+            <div style={{ borderBottom: '1px solid var(--color-redacted)', paddingBottom: '0.5rem', marginBottom: '0.5rem', marginTop: '0.5rem' }}>
+              <span style={{ 
+                color: 'var(--color-redacted)', 
+                fontSize: '0.8rem', 
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '1px',
+                textTransform: 'uppercase',
+              }}>
+                Database
+              </span>
+            </div>
             <Link 
               to="/sql-cases" 
               onClick={() => setMobileMenuOpen(false)}

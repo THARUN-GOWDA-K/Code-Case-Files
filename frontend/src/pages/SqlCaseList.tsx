@@ -133,8 +133,9 @@ export default function SqlCaseList() {
         </div>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.5rem' }}>
-          {cases.map((c) => {
+          {cases.map((c, index) => {
             const difficulty = c.difficulty ? DIFFICULTY_STAMP[c.difficulty] : null
+            const caseNumber = index + 1
             
             return (
               <Link to={`/sql-cases/${c.slug}`} key={c.id} style={{ textDecoration: 'none' }}>
@@ -149,7 +150,7 @@ export default function SqlCaseList() {
                       alignItems: 'center', 
                       gap: '0.5rem' 
                     }}>
-                      📁 {c.title}
+                      📁 CASE #{caseNumber}: {c.title.replace(/^Case #\d+ — /, '')}
                     </h3>
                     {difficulty && (
                       <span className={`badge-stamp ${difficulty.class}`} style={{ flexShrink: 0, marginLeft: 12 }}>

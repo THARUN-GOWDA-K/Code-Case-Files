@@ -25,3 +25,8 @@ export async function submitSqlQuery(stageId: number, query: string) {
   })
   return res.json()
 }
+
+export async function getMySqlSubmissions() {
+  const res = await authenticatedFetch('/api/sql-cases/my-submissions')
+  return res.json()
+}

@@ -114,8 +114,17 @@ def _upsert_case_file(sess, path: str) -> None:
         stage.xp_reward = stage_data.get("xp_reward", 10)
         stage.hints = stage_data.get("hints", [])
 
-    # Removed stages (in DB but not in YAML) are left in place so existing
-    # SqldSubmission rows remain valid and no FK violation can occur.
+    # Remove stages that are no longer in the YAML to prevent duplicates
+    # First delete any submissions associated with these stages to avoid foreign key violations
+    from .models import SqldSubmission
+    existing_stages = sess.query(SqldStage).filter_by(case_id=case.id).all()
+    for existing_stage in existing_stages:
+        if existing_stage.slug not in yaml_stage_slugs:
+            # Delete submissions first
+            sess.query(SqldSubmission).filter_by(stage_id=existing_stage.id).delete()
+            # Then delete the stage
+            sess.delete(existing_stage)
+            print(f"[sql_cases.loader]    - Removing stage '{existing_stage.slug}' and its submissions")
 
 
 if __name__ == "__main__":

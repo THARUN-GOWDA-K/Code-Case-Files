@@ -119,7 +119,7 @@ export default function ChallengeList() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {cases.map((c) => (
+          {cases.map((c, index) => (
             <Link 
               key={c.id} 
               to={`/case/${c.id}`}
@@ -132,7 +132,7 @@ export default function ChallengeList() {
                   marginBottom: '0.5rem',
                   fontSize: '1.3rem',
                 }}>
-                  CASE #{c.id}: {c.title}
+                  CASE #{index + 1}: {c.title}
                 </h3>
                 {c.summary && (
                   <p style={{ 

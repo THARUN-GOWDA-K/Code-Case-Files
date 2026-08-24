@@ -14,6 +14,7 @@ interface AuthContextType {
   loading: boolean
   login: (token: string) => Promise<void>
   logout: () => void
+  refreshUser: () => Promise<void>
   isAuthenticated: boolean
 }
 
@@ -28,7 +29,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (token) {
       getAuthMe()
         .then(setUser)
-        .catch(() => {
+        .catch((error) => {
+          console.error('Auth check failed:', error)
           clearToken()
           setUser(null)
         })
@@ -67,11 +69,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
+  const refreshUser = async () => {
+    const token = getToken()
+    if (token) {
+      try {
+        const userData = await getAuthMe()
+        setUser(userData)
+      } catch (error) {
+        console.error('Failed to refresh user data:', error)
+      }
+    }
+  }
+
   const authValue = useMemo(() => ({
     user,
     loading,
     login,
     logout,
+    refreshUser,
     isAuthenticated: !!user
   }), [user, loading])
 

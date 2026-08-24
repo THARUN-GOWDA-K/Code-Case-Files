@@ -25,6 +25,12 @@ def on_startup():
     create_tables()
     # Upsert SQL-detective case definitions from YAML files
     load_all_cases()
+    # Seed additional challenge cases (if needed)
+    try:
+        from .seed_cases import seed_additional_cases
+        seed_additional_cases()
+    except Exception as e:
+        print(f"Warning: Could not seed additional cases: {e}")
 
 
 @app.get("/")

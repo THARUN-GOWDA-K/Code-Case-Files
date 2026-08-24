@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Editor from '../components/Editor'
 import { submitCode, unlockHint } from '../lib/api'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function ChallengeView() {
   const { caseId } = useParams()
+  const { refreshUser } = useAuth()
   const [caseData, setCaseData] = useState<any>(null)
   const [code, setCode] = useState<string>("# Write Python code here\n")
   const [result, setResult] = useState<any>(null)
@@ -37,6 +39,10 @@ export default function ChallengeView() {
       const payload = { stage_id: 1, language: 'python', source: code, final }
       const body = await submitCode(1, 'python', code, final)
       setResult(body)
+      // Refresh user data to update XP in real-time
+      if (body.score > 0) {
+        await refreshUser()
+      }
     } catch (error) {
       setResult({ error: 'Submission failed' })
     } finally {
