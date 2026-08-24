@@ -1,7 +1,7 @@
 """
 Router for the SQL-detective-case module.
 Style matches app/api/challenges.py exactly:
-  - inline get_session() call (no Depends for DB)
+  - Depends(get_session) for DB sessions
   - Depends(get_current_user) only for auth-required endpoints
   - response_model on GET endpoints, inline dict on POST
 """
@@ -28,17 +28,21 @@ router = APIRouter()
 # ── GET /cases ──────────────────────────────────────────────────────────────
 
 @router.get("/cases", response_model=list[SqldCaseOut])
-def list_sql_cases():
-    sess = get_session()
-    cases = sess.query(SqldCase).all()
-    return [SqldCaseOut.from_orm(c) for c in cases]
+def list_sql_cases(sess=Depends(get_session)):
+    cases = sess.query(SqldCase).order_by(SqldCase.id.asc()).all()
+    seen = set()
+    unique_cases = []
+    for c in cases:
+        if c.slug not in seen:
+            seen.add(c.slug)
+            unique_cases.append(c)
+    return [SqldCaseOut.from_orm(c) for c in unique_cases]
 
 
 # ── GET /cases/{slug} ────────────────────────────────────────────────────────
 
 @router.get("/cases/{slug}", response_model=SqldCaseDetailOut)
-def get_sql_case(slug: str):
-    sess = get_session()
+def get_sql_case(slug: str, sess=Depends(get_session)):
     case = sess.query(SqldCase).filter_by(slug=slug).first()
     if not case:
         raise HTTPException(status_code=404, detail="SQL case not found")
@@ -48,8 +52,7 @@ def get_sql_case(slug: str):
 # ── GET /stages/{id} ─────────────────────────────────────────────────────────
 
 @router.get("/stages/{stage_id}", response_model=SqldStageOut)
-def get_sql_stage(stage_id: int):
-    sess = get_session()
+def get_sql_stage(stage_id: int, sess=Depends(get_session)):
     stage = sess.get(SqldStage, stage_id)
     if not stage:
         raise HTTPException(status_code=404, detail="Stage not found")
@@ -63,8 +66,8 @@ def submit_sql_query(
     stage_id: int,
     req: SqldSubmissionRequest,
     user=Depends(get_current_user),
+    sess=Depends(get_session),
 ):
-    sess = get_session()
     stage = sess.get(SqldStage, stage_id)
     if not stage:
         raise HTTPException(status_code=404, detail="Stage not found")
@@ -131,12 +134,11 @@ def submit_sql_query(
 # ── GET /my-submissions ─────────────────────────────────────────────────────
 
 @router.get("/my-submissions")
-def my_submissions(user=Depends(get_current_user)):
+def my_submissions(user=Depends(get_current_user), sess=Depends(get_session)):
     """Get all SQL submissions for the current authenticated user."""
     if not user:
         raise HTTPException(status_code=401, detail="Authentication required")
     
-    sess = get_session()
     submissions = sess.query(SqldSubmission).filter_by(user_id=user.id).order_by(SqldSubmission.submitted_at.desc()).all()
     
     return [

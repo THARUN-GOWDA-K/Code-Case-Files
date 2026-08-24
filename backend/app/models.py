@@ -2,6 +2,7 @@ import os
 from sqlalchemy import (Column, Integer, String, Text, ForeignKey, JSON, DateTime, Boolean)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import create_engine, func
+from contextlib import contextmanager
 
 # Database connection URL. Default to local SQLite fallback.
 # For MySQL use: mysql+pymysql://user:password@localhost:3306/codecase
@@ -86,4 +87,21 @@ def create_tables():
 
 
 def get_session():
-    return SessionLocal()
+    sess = SessionLocal()
+    try:
+        yield sess
+    finally:
+        sess.close()
+
+
+@contextmanager
+def session_scope():
+    sess = SessionLocal()
+    try:
+        yield sess
+        sess.commit()
+    except Exception:
+        sess.rollback()
+        raise
+    finally:
+        sess.close()

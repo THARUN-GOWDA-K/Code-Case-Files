@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
-import { getSqlCase, getMySqlSubmissions } from '../lib/sqlCases'
+import { getSqlCase, getMySqlSubmissions, listSqlCases } from '../lib/sqlCases'
 import { useAuth } from '../contexts/AuthContext'
 
 type Stage = {
@@ -28,6 +28,13 @@ type Submission = {
   submitted_at: string
 }
 
+type SqlCaseListItem = {
+  id: number
+  slug: string
+  title: string
+  difficulty?: string
+}
+
 const DIFFICULTY_STAMP: Record<string, { class: string; label: string }> = {
   easy: { class: 'stamp-easy', label: 'CLEARED' },
   medium: { class: 'stamp-medium', label: 'CONFIDENTIAL' },
@@ -38,6 +45,7 @@ export default function SqlCaseView() {
   const { slug } = useParams<{ slug: string }>()
   const { user } = useAuth()
   const [caseData, setCaseData] = useState<SqlCaseDetail | null>(null)
+  const [allCases, setAllCases] = useState<SqlCaseListItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [submissions, setSubmissions] = useState<Submission[]>([])
@@ -56,6 +64,12 @@ export default function SqlCaseView() {
       .then(setSubmissions)
       .catch(() => setSubmissions([]))
   }, [user])
+
+  useEffect(() => {
+    listSqlCases()
+      .then(setAllCases)
+      .catch(() => setAllCases([]))
+  }, [])
 
   const isStageCompleted = (stageId: number) => {
     return submissions.some(sub => sub.stage_id === stageId && sub.correct)
@@ -129,6 +143,9 @@ export default function SqlCaseView() {
 
   // Sort stages by order
   const sortedStages = [...caseData.stages].sort((a, b) => a.order - b.order)
+
+  const currentCaseIndex = allCases.findIndex(c => c.slug === slug)
+  const nextCase = currentCaseIndex >= 0 && currentCaseIndex < allCases.length - 1 ? allCases[currentCaseIndex + 1] : null
 
   return (
     <div>
@@ -282,6 +299,31 @@ export default function SqlCaseView() {
               </div>
             </Link>
           ))}
+        </div>
+      )}
+
+      {/* Next Case button */}
+      {nextCase && (
+        <div style={{ marginTop: '2rem' }}>
+          <Link
+            to={`/sql-cases/${nextCase.slug}`}
+            style={{
+              background: 'var(--color-verified)',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '4px',
+              padding: '0.75rem 1.5rem',
+              cursor: 'pointer',
+              fontWeight: 'bold',
+              fontSize: '0.95rem',
+              fontFamily: 'var(--font-display)',
+              letterSpacing: '0.5px',
+              textDecoration: 'none',
+              display: 'inline-block',
+            }}
+          >
+            NEXT CASE →
+          </Link>
         </div>
       )}
     </div>

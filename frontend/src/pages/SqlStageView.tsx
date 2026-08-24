@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Editor from '../components/Editor'
-import { getSqlStage, submitSqlQuery } from '../lib/sqlCases'
+import { getSqlStage, submitSqlQuery, listSqlCases } from '../lib/sqlCases'
 import { useAuth } from '../contexts/AuthContext'
 
 type StageDetail = {
@@ -12,6 +12,13 @@ type StageDetail = {
   schema_description?: string
   xp_reward: number
   hints: string[]
+}
+
+type SqlCaseWithStages = {
+  id: number
+  slug: string
+  title: string
+  stages: Array<{ id: number; order: number; title: string }>
 }
 
 type SubmitResult = {
@@ -27,6 +34,7 @@ export default function SqlStageView() {
   const { refreshUser } = useAuth()
 
   const [stage, setStage] = useState<StageDetail | null>(null)
+  const [allCases, setAllCases] = useState<SqlCaseWithStages[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -44,6 +52,21 @@ export default function SqlStageView() {
       .finally(() => setLoading(false))
   }, [stageId])
 
+  useEffect(() => {
+    listSqlCases()
+      .then(setAllCases)
+      .catch(() => setAllCases([]))
+  }, [])
+
+  // Find current case and stage index for navigation
+  const currentCase = allCases.find(c => c.stages.some(s => s.id === stageId))
+  const sortedStages = currentCase ? [...currentCase.stages].sort((a, b) => a.order - b.order) : []
+  const currentStageIndex = sortedStages.findIndex(s => s.id === stageId)
+  const isLastStage = currentStageIndex === sortedStages.length - 1
+  const nextStage = !isLastStage ? sortedStages[currentStageIndex + 1] : null
+  const currentCaseIndex = allCases.findIndex(c => c.id === currentCase?.id)
+  const nextCase = currentCaseIndex >= 0 && currentCaseIndex < allCases.length - 1 ? allCases[currentCaseIndex + 1] : null
+
   async function handleSubmit() {
     if (!stageId || !query.trim()) return
     setSubmitting(true)
@@ -52,11 +75,9 @@ export default function SqlStageView() {
     try {
       const res = await submitSqlQuery(stageId, query)
       if (res.detail) {
-        // FastAPI error response
         setSubmitError(res.detail)
       } else {
         setResult(res as SubmitResult)
-        // Refresh user data to update XP in real-time
         if (res.correct && res.xp_awarded > 0) {
           await refreshUser()
         }
@@ -237,6 +258,52 @@ export default function SqlStageView() {
             )}
           </div>
         )}
+
+        {/* Navigation buttons */}
+        <div style={{ marginTop: '2rem', display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {nextStage && (
+            <Link
+              to={`/sql-stages/${nextStage.id}`}
+              style={{
+                background: 'var(--color-clue)',
+                color: '#000',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '0.75rem 1.5rem',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.95rem',
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '0.5px',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              NEXT INVESTIGATION →
+            </Link>
+          )}
+          {isLastStage && nextCase && (
+            <Link
+              to={`/sql-cases/${nextCase.slug}`}
+              style={{
+                background: 'var(--color-verified)',
+                color: '#fff',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '0.75rem 1.5rem',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.95rem',
+                fontFamily: 'var(--font-display)',
+                letterSpacing: '0.5px',
+                textDecoration: 'none',
+                textAlign: 'center',
+              }}
+            >
+              NEXT CASE →
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* ── RIGHT PANEL: editor + submit + results ──────────────────────── */}
@@ -249,7 +316,7 @@ export default function SqlStageView() {
           fontFamily: 'var(--font-display)',
         }}>QUERY TERMINAL</h4>
 
-        {/* Monaco editor — reuses existing component with language="sql" */}
+        {/* Monaco editor */}
         <div style={{ 
           border: '1px solid var(--color-redacted)', 
           borderRadius: '4px', 

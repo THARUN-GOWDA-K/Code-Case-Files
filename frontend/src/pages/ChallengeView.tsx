@@ -4,10 +4,13 @@ import Editor from '../components/Editor'
 import { submitCode, unlockHint } from '../lib/api'
 import { useAuth } from '../contexts/AuthContext'
 
+type CaseItem = { id: number; title: string; summary?: string }
+
 export default function ChallengeView() {
   const { caseId } = useParams()
   const { refreshUser } = useAuth()
   const [caseData, setCaseData] = useState<any>(null)
+  const [allCases, setAllCases] = useState<CaseItem[]>([])
   const [code, setCode] = useState<string>("# Write Python code here\n")
   const [result, setResult] = useState<any>(null)
   const [hints, setHints] = useState<any[]>([])
@@ -30,7 +33,16 @@ export default function ChallengeView() {
       .then((r) => r.json())
       .then(setHints)
       .catch(console.error)
+
+    // load all cases for navigation
+    fetch('/api/challenges/')
+      .then((r) => r.ok ? r.json() : [])
+      .then(setAllCases)
+      .catch(() => setAllCases([]))
   }, [caseId])
+
+  const currentCaseIndex = allCases.findIndex(c => String(c.id) === String(caseId))
+  const nextCase = currentCaseIndex >= 0 && currentCaseIndex < allCases.length - 1 ? allCases[currentCaseIndex + 1] : null
 
   async function handleSubmit(final = true) {
     setResult(null)
@@ -153,7 +165,7 @@ export default function ChallengeView() {
             <Editor value={code} language="python" onChange={setCode} />
           </div>
 
-          <div style={{ marginTop: '1rem' }}>
+          <div style={{ marginTop: '1rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             <button
               onClick={() => handleSubmit(false)}
               disabled={submitting}
@@ -168,7 +180,6 @@ export default function ChallengeView() {
                 fontSize: '0.95rem',
                 fontFamily: 'var(--font-display)',
                 letterSpacing: '0.5px',
-                marginRight: '0.5rem',
               }}
             >
               {submitting ? 'RUNNING...' : 'RUN TESTS'}
@@ -191,6 +202,28 @@ export default function ChallengeView() {
             >
               {submitting ? 'SUBMITTING...' : 'SUBMIT'}
             </button>
+
+            {nextCase && (
+              <Link
+                to={`/case/${nextCase.id}`}
+                style={{
+                  background: 'var(--color-verified)',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  padding: '0.75rem 1.5rem',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.95rem',
+                  fontFamily: 'var(--font-display)',
+                  letterSpacing: '0.5px',
+                  textDecoration: 'none',
+                  marginLeft: 'auto',
+                }}
+              >
+                NEXT CASE →
+              </Link>
+            )}
           </div>
 
           {result && (

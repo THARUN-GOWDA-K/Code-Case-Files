@@ -7,15 +7,30 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
-from models import get_session, Case, Stage
+from models import session_scope, Case, Stage
 
 def seed_additional_cases():
     """Add additional challenge cases to the database."""
     
     additional_cases = [
         {
+            "slug": "case-001-hello-world",
+            "title": "Hello World",
+            "summary": "Your first case. Write a program that prints a simple greeting to the console.",
+            "difficulty": "easy",
+            "stages": [
+                {
+                    "title": "Print Greeting",
+                    "order": 1,
+                    "time_limit_seconds": 60,
+                    "memory_limit_mb": 128,
+                    "allowed_languages": ["python"]
+                }
+            ]
+        },
+        {
             "slug": "case-002-data-breach",
-            "title": "Case #002 — Data Breach",
+            "title": "Data Breach",
             "summary": "Investigate a suspected data breach at a tech company by analyzing access logs and user activity patterns.",
             "difficulty": "medium",
             "stages": [
@@ -37,7 +52,7 @@ def seed_additional_cases():
         },
         {
             "slug": "case-003-cryptic-messages",
-            "title": "Case #003 — Cryptic Messages",
+            "title": "Cryptic Messages",
             "summary": "Decode encrypted messages sent between suspected criminals using frequency analysis and pattern recognition.",
             "difficulty": "hard",
             "stages": [
@@ -66,7 +81,7 @@ def seed_additional_cases():
         },
         {
             "slug": "case-004-network-intrusion",
-            "title": "Case #004 — Network Intrusion",
+            "title": "Network Intrusion",
             "summary": "Trace the source of a network intrusion by analyzing packet logs and connection patterns.",
             "difficulty": "medium",
             "stages": [
@@ -88,7 +103,7 @@ def seed_additional_cases():
         },
         {
             "slug": "case-005-missing-artifact",
-            "title": "Case #005 — Missing Artifact",
+            "title": "Missing Artifact",
             "summary": "A valuable artifact has gone missing from a museum. Investigate security footage and access logs to find the thief.",
             "difficulty": "easy",
             "stages": [
@@ -110,41 +125,36 @@ def seed_additional_cases():
         }
     ]
     
-    sess = get_session()
-    
-    for case_data in additional_cases:
-        # Check if case already exists
-        existing_case = sess.query(Case).filter_by(slug=case_data["slug"]).first()
-        if existing_case:
-            print(f"Case {case_data['slug']} already exists, skipping...")
-            continue
-        
-        # Create case
-        case = Case(
-            slug=case_data["slug"],
-            title=case_data["title"],
-            summary=case_data["summary"],
-            difficulty=case_data["difficulty"],
-            content={}
-        )
-        sess.add(case)
-        sess.flush()
-        
-        # Create stages
-        for stage_data in case_data["stages"]:
-            stage = Stage(
-                case_id=case.id,
-                title=stage_data["title"],
-                order=stage_data["order"],
-                time_limit_seconds=stage_data["time_limit_seconds"],
-                memory_limit_mb=stage_data["memory_limit_mb"],
-                allowed_languages=stage_data["allowed_languages"]
+    with session_scope() as sess:
+        for case_data in additional_cases:
+            existing_case = sess.query(Case).filter_by(slug=case_data["slug"]).first()
+            if existing_case:
+                continue
+            
+            case = Case(
+                slug=case_data["slug"],
+                title=case_data["title"],
+                summary=case_data["summary"],
+                difficulty=case_data["difficulty"],
+                content={}
             )
-            sess.add(stage)
-        
-        print(f"Added case: {case_data['title']}")
+            sess.add(case)
+            sess.flush()
+            
+            # Create stages
+            for stage_data in case_data["stages"]:
+                stage = Stage(
+                    case_id=case.id,
+                    title=stage_data["title"],
+                    order=stage_data["order"],
+                    time_limit_seconds=stage_data["time_limit_seconds"],
+                    memory_limit_mb=stage_data["memory_limit_mb"],
+                    allowed_languages=stage_data["allowed_languages"]
+                )
+                sess.add(stage)
+            
+            print(f"Added case: {case_data['title']}")
     
-    sess.commit()
     print("Additional cases seeded successfully!")
 
 if __name__ == "__main__":

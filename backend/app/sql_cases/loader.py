@@ -36,7 +36,7 @@ import os
 import glob
 import yaml
 
-from ..models import get_session
+from ..models import session_scope
 from .models import SqldCase, SqldStage
 
 # Directory containing *.yaml case definitions (relative to this file)
@@ -56,12 +56,11 @@ def load_all_cases() -> None:
         print(f"[sql_cases.loader] No YAML files found in {_CASE_FILES_DIR}")
         return
 
-    sess = get_session()
+    with session_scope() as sess:
 
-    for path in yaml_files:
-        _upsert_case_file(sess, path)
+        for path in yaml_files:
+            _upsert_case_file(sess, path)
 
-    sess.commit()
     print(f"[sql_cases.loader] Loaded {len(yaml_files)} case file(s).")
 
 
@@ -87,13 +86,11 @@ def _upsert_case_file(sess, path: str) -> None:
     sess.flush()
 
     # Upsert stages: match by (case_id, slug) to preserve stage.id across reloads
-    yaml_stage_slugs = set()
     for stage_data in data.get("stages", []):
         stage_slug = stage_data.get("slug")
         if not stage_slug:
             raise ValueError(f"Stage missing 'slug' in {path}")
 
-        yaml_stage_slugs.add(stage_slug)
         stage = sess.query(SqldStage).filter_by(case_id=case.id, slug=stage_slug).first()
 
         if stage is None:
@@ -114,17 +111,8 @@ def _upsert_case_file(sess, path: str) -> None:
         stage.xp_reward = stage_data.get("xp_reward", 10)
         stage.hints = stage_data.get("hints", [])
 
-    # Remove stages that are no longer in the YAML to prevent duplicates
-    # First delete any submissions associated with these stages to avoid foreign key violations
-    from .models import SqldSubmission
-    existing_stages = sess.query(SqldStage).filter_by(case_id=case.id).all()
-    for existing_stage in existing_stages:
-        if existing_stage.slug not in yaml_stage_slugs:
-            # Delete submissions first
-            sess.query(SqldSubmission).filter_by(stage_id=existing_stage.id).delete()
-            # Then delete the stage
-            sess.delete(existing_stage)
-            print(f"[sql_cases.loader]    - Removing stage '{existing_stage.slug}' and its submissions")
+    # Removed stages (in DB but not in YAML) are left in place so existing
+    # SqldSubmission rows remain valid and no FK violation can occur.
 
 
 if __name__ == "__main__":
