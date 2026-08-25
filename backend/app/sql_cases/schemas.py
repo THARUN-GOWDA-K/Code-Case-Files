@@ -20,12 +20,22 @@ class SqldStageOut(BaseModel):
         orm_mode = True
 
 
+class SqldStageSummary(BaseModel):
+    id: int
+    order: int
+    title: str
+
+    class Config:
+        orm_mode = True
+
+
 class SqldCaseOut(BaseModel):
     id: int
     slug: str
     title: str
     story_intro: Optional[str] = None
     difficulty: Optional[str] = None
+    stages: List[SqldStageSummary] = []
 
     class Config:
         orm_mode = True

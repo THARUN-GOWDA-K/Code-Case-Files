@@ -18,21 +18,23 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const showToast = (message: string, type: 'error' | 'success' | 'info' = 'info') => {
     const id = Math.random().toString(36).substring(7)
-    setToasts((prev) => [...prev, { id, message, type }])
+    setToasts((prev) => [...prev.slice(-4), { id, message, type }]) // max 5 toasts
   }
 
   const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((toast) => toast.id !== id))
+    setToasts((prev) => prev.filter((t) => t.id !== id))
   }
 
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      {toasts.map((toast) => (
+      {/* Render toasts with stacked position offsets */}
+      {toasts.map((toast, index) => (
         <Toast
           key={toast.id}
           message={toast.message}
           type={toast.type}
+          index={index}
           onClose={() => removeToast(toast.id)}
         />
       ))}
@@ -41,9 +43,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 }
 
 export function useToast() {
-  const context = useContext(ToastContext)
-  if (context === undefined) {
-    throw new Error('useToast must be used within a ToastProvider')
-  }
-  return context
+  const ctx = useContext(ToastContext)
+  if (!ctx) throw new Error('useToast must be used within a ToastProvider')
+  return ctx
 }

@@ -3,19 +3,25 @@
 
 import { authenticatedFetch } from './auth'
 
+async function fetchJson(res: Response) {
+  const body = await res.json()
+  if (!res.ok) throw new Error(body.detail || 'Request failed')
+  return body
+}
+
 export async function listSqlCases() {
   const res = await fetch('/api/sql-cases/cases')
-  return res.json()
+  return fetchJson(res)
 }
 
 export async function getSqlCase(slug: string) {
   const res = await fetch(`/api/sql-cases/cases/${slug}`)
-  return res.json()
+  return fetchJson(res)
 }
 
 export async function getSqlStage(stageId: number) {
   const res = await fetch(`/api/sql-cases/stages/${stageId}`)
-  return res.json()
+  return fetchJson(res)
 }
 
 export async function submitSqlQuery(stageId: number, query: string) {
@@ -23,10 +29,10 @@ export async function submitSqlQuery(stageId: number, query: string) {
     method: 'POST',
     body: JSON.stringify({ query }),
   })
-  return res.json()
+  return fetchJson(res)
 }
 
 export async function getMySqlSubmissions() {
   const res = await authenticatedFetch('/api/sql-cases/my-submissions')
-  return res.json()
+  return fetchJson(res)
 }

@@ -7,7 +7,7 @@ import os
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 
-from models import session_scope, Case, Stage
+from .models import session_scope, Case, Stage
 
 def seed_additional_cases():
     """Add additional challenge cases to the database."""
@@ -149,7 +149,8 @@ def seed_additional_cases():
                     order=stage_data["order"],
                     time_limit_seconds=stage_data["time_limit_seconds"],
                     memory_limit_mb=stage_data["memory_limit_mb"],
-                    allowed_languages=stage_data["allowed_languages"]
+                    allowed_languages=stage_data["allowed_languages"],
+                    prompt=stage_data.get("prompt")
                 )
                 sess.add(stage)
             

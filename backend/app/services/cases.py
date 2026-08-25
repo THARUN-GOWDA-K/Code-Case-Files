@@ -17,9 +17,9 @@ def seed_sample_case():
         sess.add(case)
 
         # Add 3 stages
-        s1 = models.Stage(case_id=case.id, title="Stage 1: Ledger Parsing", order=1)
-        s2 = models.Stage(case_id=case.id, title="Stage 2: Find Anomaly", order=2)
-        s3 = models.Stage(case_id=case.id, title="Stage 3: Decode Note", order=3)
+        s1 = models.Stage(case_id=case.id, title="Stage 1: Ledger Parsing", order=1, prompt='A suspicious ledger was found on the server. Your first task: write a Python function that reads a list of integers and returns their sum. The ledger entries are stored as a list like [1, 2, 3, 4, 5].')
+        s2 = models.Stage(case_id=case.id, title="Stage 2: Find Anomaly", order=2, prompt='The anomaly is hidden among consecutive transactions. Find the pair of numbers in the list that has the maximum absolute difference. Return the difference as an integer.')
+        s3 = models.Stage(case_id=case.id, title="Stage 3: Decode Note", order=3, prompt='The decoded note contains a Caesar cipher. Write a function that takes a string and a shift integer and decodes the cipher by shifting each letter back by that amount.')
         sess.add_all([s1, s2, s3])
 
         # Visible test for stage1

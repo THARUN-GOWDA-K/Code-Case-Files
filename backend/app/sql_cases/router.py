@@ -9,7 +9,7 @@ Style matches app/api/challenges.py exactly:
 from fastapi import APIRouter, HTTPException, Depends
 
 from ..models import get_session
-from ..auth import get_current_user
+from ..auth import require_user
 from . import models as sqld_models
 from .models import SqldCase, SqldStage, SqldSubmission
 from ..models import User
@@ -65,7 +65,7 @@ def get_sql_stage(stage_id: int, sess=Depends(get_session)):
 def submit_sql_query(
     stage_id: int,
     req: SqldSubmissionRequest,
-    user=Depends(get_current_user),
+    user=Depends(require_user),
     sess=Depends(get_session),
 ):
     stage = sess.get(SqldStage, stage_id)
@@ -93,7 +93,12 @@ def submit_sql_query(
         order_sensitive=stage.order_sensitive,
     )
 
-    xp_awarded = stage.xp_reward if correct else 0
+    already_solved = bool(
+        user and sess.query(SqldSubmission).filter_by(
+            stage_id=stage_id, user_id=user.id, correct=True
+        ).first()
+    )
+    xp_awarded = stage.xp_reward if correct and not already_solved else 0
 
     # Build human-readable feedback
     if correct:
@@ -116,8 +121,8 @@ def submit_sql_query(
     )
     sess.add(submission)
 
-    # Award XP to authenticated user on first correct solve
-    if correct and user:
+    # Award XP only for the first correct solve of a stage.
+    if xp_awarded and user:
         fresh_user = sess.query(User).filter(User.id == user.id).first()
         fresh_user.xp = (fresh_user.xp or 0) + xp_awarded
 
@@ -134,11 +139,8 @@ def submit_sql_query(
 # ── GET /my-submissions ─────────────────────────────────────────────────────
 
 @router.get("/my-submissions")
-def my_submissions(user=Depends(get_current_user), sess=Depends(get_session)):
+def my_submissions(user=Depends(require_user), sess=Depends(get_session)):
     """Get all SQL submissions for the current authenticated user."""
-    if not user:
-        raise HTTPException(status_code=401, detail="Authentication required")
-    
     submissions = sess.query(SqldSubmission).filter_by(user_id=user.id).order_by(SqldSubmission.submitted_at.desc()).all()
     
     return [

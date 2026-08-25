@@ -1,273 +1,204 @@
-# Code Case Files — Detective Coding Game (MVP → Production)
+<div align="center">
 
-## Overview
+# 🕵️‍♂️ CODE CASE FILES
 
-Code Case Files is a coding-focused detective game that turns programming
-challenges into story-driven case investigations. Players solve coding
-puzzles and SQL mysteries inside narrative stages to reveal clues, earn XP,
-and progress toward a final accusation.
+### *A Noir Detective Coding & SQL Investigation Platform*
 
-This repository contains two parallel investigation paths:
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.95+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![React](https://img.shields.io/badge/React-18.2-61DAFB.svg?style=for-the-badge&logo=react&logoColor=black)](https://reactjs.org/)
+[![Vite](https://img.shields.io/badge/Vite-5.1+-646CFF.svg?style=for-the-badge&logo=vite&logoColor=white)](https://vitejs.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.5+-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-3776AB.svg?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![Docker](https://img.shields.io/badge/Docker-Supported-2496ED.svg?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
 
-- **Python challenge path** — fix/write code to pass hidden test cases
-- **SQL detective path** — query mock evidence databases to solve mysteries
+<p align="center">
+  <b>Crack the code. Query the evidence. Uncover the truth.</b><br>
+  Turn algorithmic puzzles and SQL databases into immersive, story-driven crime investigations.
+</p>
 
-Stack:
+</div>
 
-- **Frontend:** React + TypeScript + Vite + Monaco Editor
-- **Backend:** FastAPI (Python) with SQLAlchemy models
-- **Execution:** self-hosted Docker-based executor (Python path) + sandboxed
-  in-memory SQLite execution (SQL path)
-- **Async grading:** Celery + Redis (Python path only)
-- **Data:** MySQL (primary), SQLite fallback for quick local dev
-- **Auth:** JWT-based, full login gate across the app
+---
 
-## Key features implemented
+## 🔍 Overview
 
-**Python challenge path**
+**Code Case Files** transforms traditional algorithmic challenges and database querying into interactive noir investigations. Players assume the role of a digital detective, analyzing server logs, parsing decrypted data, querying suspect registries, and submitting solution scripts to earn XP and solve cases.
 
-- Case, Stage, Challenge data model (seeded sample case)
-- Embedded Monaco code editor in the frontend
-- Submission API (`/api/submissions`) that enqueues grading jobs
-- Grader worker (Celery) runs submitted code inside ephemeral Docker
-  containers (network disabled, resource limits)
-- Tiered hint system with unlock and XP cost
+The application features two parallel investigation tracks:
 
-**SQL detective path**
+- 🐍 **Python Challenge Path**: Fix, optimize, or write algorithm solutions graded asynchronously against hidden test cases.
+- 🗄️ **SQL Detective Path**: Query mock evidence databases in a sandboxed, SELECT-only SQLite environment to uncover suspects and unravel complex criminal plots.
 
-- Isolated module (`app/sql_cases/`) with its own `sqld_`-prefixed tables —
-  no shared schema with the Python path
-- Sandboxed SQL execution: SELECT-only whitelist, query timeout, row limit,
-  fresh in-memory SQLite per submission (not the main app database)
-- Case content authored as YAML (`app/sql_cases/case_files/*.yaml`)
-- True upsert-on-load by `(case_id, slug)` — case content can be edited and
-  reloaded without breaking existing user submissions
-- First working case: **"The Missing Funds"** (3 stages)
+---
 
-**Shared**
+## ✨ Key Features & Enhancements
 
-- User auth (signup/login), JWT-based tokens, `GET /api/auth/me`
-- Entire app gated behind login — no page is browsable without an account
-- Attempts persistence and `GET /api/attempts/me` for user history
-- Noir detective-themed UI across all pages
-- Basic admin/dev scripts to seed cases and create a test user
+### 🎨 Premium Noir UI & Interactive Design System
+- **Dark Aesthetic & Glassmorphism**: Vibrant HSL gold accents (`#fbbf24`), deep space backgrounds (`#050810`), and glassmorphism elements.
+- **Cinematic Experience**: Animated split-screen login, typewriter dispatch messages, floating case file badges, and custom badge stamps (`CLEARED`, `CONFIDENTIAL`, `RESTRICTED`).
+- **Interactive Code Editor**: Integrated Monaco Editor with syntax highlighting, custom theme matching, auto-completion, and editor chrome controls.
+- **Real-Time Toast & Soundless Notifications**: Stacking toast notification system for instant feedback on actions, hints, and error alerts.
 
-## Project layout
+### 🐍 Python Path & Asynchronous Execution
+- **Asynchronous Execution & Polling**: Celery + Redis worker integration with frontend status polling for real-time grading feedback.
+- **Interactive Verdict Panel**: Breakdown of passed/failed test cases, execution stdout/expected output comparisons, and percentage progress bars.
+- **Tiered Hint System**: Unlockable evidence files with XP cost and inline text reveal.
+- **XP Progression**: Automatically awards XP upon solving challenges and updates player profile in real-time.
 
-backend/
-├── app/
-│ ├── main.py # FastAPI entrypoint, router registration
-│ ├── models.py # Core SQLAlchemy models (Case, Stage, User, etc.)
-│ ├── auth.py # JWT auth: signup, login, get_current_user
-│ ├── api/ # REST endpoints: challenges, runs, submissions,
-│ │ # hints, attempts, auth
-│ ├── executors/ # docker_executor.py (Python code execution)
-│ ├── workers/ # grader.py (Celery grading logic)
-│ ├── celery_app.py, tasks.py
-│ └── sql_cases/ # SQL detective path (isolated module)
-│ ├── models.py # SqldCase, SqldStage, SqldSubmission
-│ ├── schemas.py
-│ ├── router.py # /api/sql-cases/_
-│ ├── sandbox.py # sandboxed SELECT-only execution
-│ ├── loader.py # YAML → DB upsert on startup
-│ └── case_files/ # _.yaml case definitions
-│ └── case_001.yaml
-├── scripts/ # seed_sample_case.py, create_test_user.py,
-│ # run_playthrough.py
-├── requirements.txt
-└── .env.example # copy to .env and fill in real values
+### 🗄️ SQL Detective Path & Isolated Sandbox
+- **SELECT-only Whitelist Sandbox**: In-memory SQLite execution engine preventing destructive queries (DELETE, DROP, UPDATE).
+- **YAML-driven Case Authoring**: Declarative case file definitions (`app/sql_cases/case_files/*.yaml`) with automatic schema loader and zero-downtime upsert.
+- **Query Results Visualizer**: Formatted data tables with record counters and status indicators.
 
-frontend/
-├── src/
-│ ├── pages/
-│ │ ├── ChallengeList.tsx, ChallengeView.tsx # Python path
-│ │ ├── SqlCaseList.tsx, SqlCaseView.tsx, # SQL path
-│ │ │ SqlStageView.tsx
-│ │ ├── Login.tsx, Signup.tsx
-│ │ └── Profile.tsx
-│ ├── lib/
-│ │ ├── api.ts, sqlCases.ts # API clients
-│ │ └── auth.ts # token storage, authenticatedFetch
-│ ├── context/
-│ │ └── AuthContext.tsx # auth state, memoized provider
-│ ├── components/
-│ │ └── ProtectedRoute.tsx
-│ ├── App.tsx, main.tsx
-│ └── vite.config.ts # dev proxy → backend :8000
-└── package.json
+### 👤 Detective Dossier & Profile
+- **Career Statistics**: Track total XP earned, total cases solved, and breakdowns across Python and SQL paths.
+- **Attempt History**: Historical records of all code runs, scores, and SQL submission results.
 
-docker-compose.yml # local dev stack (MySQL, Redis, backend, worker)
+---
 
-## Getting started (local development)
+## 🛠️ Architecture & Tech Stack
 
-Prereqs: MySQL (locally installed or via Docker), Redis + Docker (for Python
-path grading), Python 3.11+ (note: Python 3.12 requires `pydantic>=1.10.13`
-— see Known Issues), Node.js & npm.
-
-### 1) Create the MySQL database
-
-Run in your MySQL shell:
-
-```sql
-CREATE DATABASE codecase CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+                     ┌──────────────────────────────────────────┐
+                     │          React + Vite + TypeScript        │
+                     │          Monaco Editor + Modern UI       │
+                     └────────────────────┬─────────────────────┘
+                                          │  REST API (JWT Auth)
+                                          ▼
+                     ┌──────────────────────────────────────────┐
+                     │          FastAPI Backend (Python)        │
+                     │          SQLAlchemy ORM + Pydantic       │
+                     └───────┬──────────────────────────┬───────┘
+                             │                          │
+           Python Path       │                          │  SQL Path
+                             ▼                          ▼
+                 ┌───────────────────────┐  ┌───────────────────────┐
+                 │ Celery Worker + Redis │  │ Sandboxed SQLite Engine│
+                 └───────────┬───────────┘  └───────────────────────┘
+                             │
+                             ▼
+                 ┌───────────────────────┐
+                 │  Isolated Execution   │
+                 └───────────────────────┘
 ```
 
-If using a dedicated app user instead of `root`:
+### Stack Breakdown
 
-```sql
-CREATE USER 'codecase'@'localhost' IDENTIFIED BY 'codecase';
-GRANT ALL PRIVILEGES ON codecase.* TO 'codecase'@'localhost';
-FLUSH PRIVILEGES;
+| Layer | Technology | Description |
+|---|---|---|
+| **Frontend** | React 18, TypeScript, Vite, Monaco Editor, React Router 6 | SPA with custom CSS design system, glassmorphism, responsive navigation |
+| **Backend** | FastAPI 0.95+, Pydantic 1.10+, Python 3.11/3.12 | Asynchronous REST API, CORS middleware, JWT authentication |
+| **Database** | SQLAlchemy 2.0+, MySQL / SQLite fallback | Dual schema support: Core App models + isolated SQL Case models |
+| **Async Tasks**| Celery 5.3+, Redis 4.6+ | Background code evaluation and queue handling |
+| **Sandbox** | Custom SQLite sandbox / Docker executor | Safe query execution engine with keyword whitelisting & execution limits |
+
+---
+
+## 📂 Project Structure
+
+```
+Sherlock Coder/
+├── backend/
+│   ├── app/
+│   │   ├── main.py              # FastAPI app initialization, CORS, lifespan & health check
+│   │   ├── models.py            # Core SQLAlchemy models (User, Case, Stage, Attempt)
+│   │   ├── schemas.py           # Pydantic validation schemas
+│   │   ├── auth.py              # JWT authentication & password hashing logic
+│   │   ├── tasks.py             # Celery task definitions
+│   │   ├── api/                 # API endpoint routers
+│   │   │   ├── challenges.py    # Python challenge path endpoints
+│   │   │   ├── submissions.py   # Code execution submission & polling
+│   │   │   ├── hints.py         # Hint unlock & reveal system
+│   │   │   └── auth.py          # User authentication endpoints
+│   │   ├── workers/
+│   │   │   └── grader.py        # Submission evaluator & XP distributor
+│   │   └── sql_cases/           # Standalone SQL Detective Module
+│   │       ├── router.py        # SQL cases endpoints
+│   │       ├── sandbox.py       # SELECT-only SQLite execution sandbox
+│   │       ├── loader.py        # YAML case files auto-loader
+│   │       └── case_files/      # Case file definitions (.yaml)
+│   └── requirements.txt         # Backend Python dependencies
+├── frontend/
+│   ├── src/
+│   │   ├── components/          # Reusable components (Nav, Toast, Editor, ProtectedRoute)
+│   │   ├── contexts/            # React Contexts (AuthContext, ToastContext)
+│   │   ├── pages/               # App views (Login, Signup, ChallengeList, SqlCaseView, Profile, 404)
+│   │   ├── lib/                 # API client utilities (api.ts, sqlCases.ts, auth.ts)
+│   │   ├── index.css            # Custom Noir Design System & Animations
+│   │   └── App.tsx              # Central Router configuration
+│   ├── package.json
+│   └── vite.config.ts
+├── docker-compose.yml           # Production & multi-container orchestration
+└── README.md
 ```
 
-> On MySQL 8+, if you hit an auth-plugin error later when connecting via
-> PyMySQL: `ALTER USER 'codecase'@'localhost' IDENTIFIED WITH mysql_native_password BY 'codecase'; FLUSH PRIVILEGES;`
+---
 
-### 2) Backend: environment setup
+## ⚡ Quick Start Guide
 
-```powershell
+### Prerequisites
+- **Python 3.11+**
+- **Node.js 18+** & **npm**
+- *(Optional)* **Redis** & **Docker** for asynchronous Python challenge evaluation
+
+---
+
+### 1️⃣ Backend Setup
+
+```bash
+# Navigate to backend directory
 cd backend
-python -m venv .venv
-.venv\Scripts\activate
+
+# Install Python dependencies
 pip install -r requirements.txt
+
+# Start the FastAPI server
+python -m uvicorn app.main:app --reload --port 8000 --host 127.0.0.1
 ```
 
-Copy `.env.example` to `.env` and fill in your real values:
+> **Note**: The backend automatically initializes an in-memory/SQLite database fallback if `DATABASE_URL` is omitted, and auto-seeds all sample programming & SQL case files on startup.
 
-```dotenv
-DATABASE_URL=mysql+pymysql://root:YOUR_PASSWORD@localhost:3306/codecase
-CELERY_BROKER_URL=redis://localhost:6379/0
-CELERY_RESULT_BACKEND=redis://localhost:6379/0
-SECRET_KEY=dev-secret-change-me
-```
+---
 
-> No password? Use `root:@localhost` (empty password) between the colons.
-> No `DATABASE_URL` set at all? Falls back to `sqlite:///./dev.db` for quick
-> testing without MySQL running.
+### 2️⃣ Frontend Setup
 
-### 3) Start Redis (for Python path grading)
+```bash
+# Navigate to frontend directory
+cd frontend
 
-```powershell
-docker-compose up -d redis
-```
-
-### 4) Start the backend
-
-```powershell
-cd backend
-.venv\Scripts\activate
-uvicorn app.main:app --reload --port 8000
-```
-
-On startup this will:
-
-- Create all tables (`create_tables()`) — including `sqld_*` tables
-- Seed/upsert SQL case content from YAML (`load_all_cases()`)
-
-Watch for `[sql_cases.loader] Loaded N case file(s).` to confirm it worked.
-
-### 5) Start the Celery worker (Python path only)
-
-```powershell
-cd backend
-.venv\Scripts\activate
-celery -A app.celery_app.celery worker --loglevel=info
-```
-
-### 6) Seed the Python path + create a test user
-
-```powershell
-python ..\scripts\seed_sample_case.py
-python ..\scripts\create_test_user.py
-```
-
-### 7) Frontend
-
-```powershell
-cd ..\frontend
+# Install Node dependencies
 npm install
+
+# Start the Vite development server
 npm run dev
-# open http://localhost:3000 (or Vite's chosen port, e.g. 5173)
 ```
 
-The whole app is login-gated — you'll land on `/login` first. Sign up, then
-explore both the Challenges and SQL Cases sections.
+Visit **[http://localhost:3000](http://localhost:3000)** in your browser to launch the Detective Terminal!
 
-### 8) Sanity-check the SQL path directly
+---
 
-```powershell
-curl http://localhost:8000/api/sql-cases/cases
-```
+## 🌐 API Overview
 
-Should return JSON including `case-001-the-missing-funds`.
+| Method | Endpoint | Description | Auth Required |
+|---|---|---|:---:|
+| `POST` | `/api/auth/signup` | Register a new detective account | ❌ |
+| `POST` | `/api/auth/login` | Authenticate and retrieve JWT token | ❌ |
+| `GET` | `/api/auth/me` | Fetch active user profile and XP | ✅ |
+| `GET` | `/api/challenges/` | List all available programming cases | ✅ |
+| `GET` | `/api/challenges/{id}` | Get detailed case & stage information | ✅ |
+| `POST` | `/api/submissions/` | Submit code for asynchronous evaluation | ✅ |
+| `GET` | `/api/submissions/{task_id}` | Poll grading task status and test details | ✅ |
+| `GET` | `/api/sql-cases/cases` | List all SQL detective cases | ✅ |
+| `POST` | `/api/sql-cases/stages/{id}/submit` | Execute and evaluate SQL query | ✅ |
+| `GET` | `/api/attempts/me` | Fetch user attempt history | ✅ |
+| `GET` | `/health` | Server health check endpoint | ❌ |
 
-## Known issues
+---
 
-- `Toast is not defined` error fires on successful login — cosmetic,
-  doesn't block the flow, needs a follow-up fix.
-- No automated tests yet for the SQL cases module.
-- Windows + Node 17+: if you see `ECONNREFUSED ::1:8000` from Vite's proxy,
-  it's an IPv6 (`::1`) vs IPv4 (`127.0.0.1`) loopback mismatch — set the
-  proxy target in `vite.config.ts` to `http://127.0.0.1:8000` explicitly.
-- Python 3.12 requires `pydantic>=1.10.13,<2.0` — earlier 1.10.x versions
-  break due to a `ForwardRef._evaluate()` signature change.
-- `bcrypt` is pinned to `4.0.1` for `passlib` compatibility — newer bcrypt
-  versions removed silent password truncation and break passlib's calling
-  convention.
+## 📜 License & Credits
 
-## Notes for Docker execution (Python path)
+Built with ❤️ by [THARUN GOWDA K](https://github.com/THARUN-GOWDA-K) as part of the **Code Case Files** project.
 
-- The grader uses a host Docker CLI-based executor for running code in
-  ephemeral containers. For local dev, run the `worker` on the host
-  (recommended) to avoid mounting the Docker socket inside containers on
-  Windows.
-- For production, do **not** mount the host Docker socket into app
-  containers. Use a dedicated execution cluster or an isolation technology
-  (gVisor, Firecracker, Isolate) and run graders in a separate, hardened
-  environment.
-
-## Security considerations
-
-- Hidden tests are stored and executed server-side; the API returns
-  aggregated results only.
-- Both execution paths enforce strict resource limits: CPU, memory, wall-
-  timeouts, and (Python path) network isolation via `--network none`.
-- The SQL sandbox whitelists `SELECT`-only queries with a keyword blacklist
-  (`INSERT`, `UPDATE`, `DELETE`, `DROP`, `ALTER`, `ATTACH`, `PRAGMA`, etc.),
-  query timeout, and row limit, executed against an ephemeral in-memory
-  SQLite database — never against the main app database.
-- Store secrets in a secrets manager for production; rotate `SECRET_KEY`.
-- Add rate-limits and per-user concurrency caps before production launch.
-
-## Production & deployment notes
-
-- Recommended stack: managed MySQL, managed Redis, Kubernetes or a managed
-  container platform (Fly.io, Cloud Run, Render), dedicated executor pool
-  for the Python grader.
-- No Alembic migrations are wired up yet — schema changes currently require
-  manual `ALTER TABLE` statements against MySQL (see git history for
-  examples from the `slug` column migration).
-- CI: add GitHub Actions to run tests, build images, and deploy.
-- Observability: Sentry for errors, Prometheus/Grafana for metrics,
-  centralized logging.
-
-## Roadmap / Next steps
-
-1. Fix the login `Toast` reference error.
-2. Add Alembic for real schema migrations instead of manual `ALTER TABLE`.
-3. Harden Python execution (migrate to gVisor/Firecracker or a managed
-   judge service).
-4. Wire SQL case submissions into the Profile XP/history view.
-5. Write a second SQL case; expand the DSA/Python path.
-6. Add tests (unit, integration, E2E) and CI/CD for production launch.
-
-## Support
-
-If you run into issues during local setup, gather the relevant logs and
-share them: backend terminal output, `docker-compose logs redis --tail=200`,
-and the browser console for any frontend errors.
-
-## License
-
-This project scaffold is provided as-is for educational and prototype
-purposes.
+<div align="center">
+  <sub>Designed for developers who love puzzles, SQL mysteries, and clean code.</sub>
+</div>
