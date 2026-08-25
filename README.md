@@ -197,7 +197,7 @@ Visit **[http://localhost:3000](http://localhost:3000)** in your browser to laun
 
 ## 📜 License & Credits
 
-Built with ❤️ by [THARUN GOWDA K](https://github.com/THARUN-GOWDA-K) as part of the **Code Case Files** project.
+Built with ❤️ by [THARUN GOWDA K](https://github.com/THARUN-GOWDA-K) and [S N KUBENDRA](https://github.com/Kubendra2004) as part of the **Code Case Files** project.
 
 <div align="center">
   <sub>Designed for developers who love puzzles, SQL mysteries, and clean code.</sub>
