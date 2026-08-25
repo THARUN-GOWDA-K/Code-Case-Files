@@ -1,9 +1,8 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from ..models import get_session, Stage
 from ..tasks import grade_submission_task
 from celery.result import AsyncResult
-from fastapi import Depends
 from ..auth import get_current_user
 
 router = APIRouter()
@@ -17,8 +16,7 @@ class SubmissionRequest(BaseModel):
 
 
 @router.post("/")
-def submit(req: SubmissionRequest, user=Depends(get_current_user)):
-    sess = get_session()
+def submit(req: SubmissionRequest, user=Depends(get_current_user), sess=Depends(get_session)):
     stage = sess.get(Stage, req.stage_id)
     if not stage:
         raise HTTPException(status_code=404, detail="Stage not found")

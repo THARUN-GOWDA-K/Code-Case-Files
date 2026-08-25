@@ -1,0 +1,168 @@
+slug: "case-001-the-missing-funds"
+title: "Case #001 — The Missing Funds"
+difficulty: "easy"
+story_intro: |
+  A prestigious auction house, Hartwell & Sons, has reported that £47,000
+  disappeared from a charity gala held on the 14th of June.
+  Three suspects were present that evening: two art dealers and a
+  private collector. The transactions database was recovered from a
+  damaged server — your job is to query it and find the culprit.
+
+  You have access to two tables:
+    • suspects  — everyone who attended the gala
+    • transactions — every payment processed that night
+
+  Good luck, Detective.
+
+stages:
+  - slug: "who-was-there"
+    order: 1
+    title: "Who Was There?"
+    prompt: |
+      Let's start with the basics. List the full name and role of every
+      person who attended the gala. Order the results by name ascending.
+    schema_description: |
+      Table: suspects
+        id        INTEGER  PRIMARY KEY
+        name      TEXT     Full name of the individual
+        role      TEXT     Their occupation (e.g. "Art Dealer", "Collector")
+        attended  INTEGER  1 if they attended the gala, 0 otherwise
+    schema_sql: |
+      CREATE TABLE suspects (
+        id       INTEGER PRIMARY KEY,
+        name     TEXT NOT NULL,
+        role     TEXT NOT NULL,
+        attended INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE transactions (
+        id           INTEGER PRIMARY KEY,
+        suspect_id   INTEGER REFERENCES suspects(id),
+        amount       REAL NOT NULL,
+        description  TEXT,
+        txn_time     TEXT
+      );
+    seed_sql: |
+      INSERT INTO suspects VALUES
+        (1, 'Eleanor Voss',   'Art Dealer',  1),
+        (2, 'Marcus Hale',    'Collector',   1),
+        (3, 'Fiona Draper',   'Art Dealer',  1),
+        (4, 'Gregory Nunn',   'Auctioneer',  0);
+      INSERT INTO transactions VALUES
+        (1,  1,  5200.00, 'Lot 12 purchase',      '2024-06-14 19:45:00'),
+        (2,  2, 47000.00, 'Wire transfer out',     '2024-06-14 22:10:00'),
+        (3,  3,  1800.00, 'Lot 7 purchase',        '2024-06-14 20:30:00'),
+        (4,  2,   350.00, 'Catalogue subscription','2024-06-14 18:00:00'),
+        (5,  1,  2100.00, 'Lot 5 purchase',        '2024-06-14 21:00:00');
+    expected_result:
+      - name: "Eleanor Voss"
+        role: "Art Dealer"
+      - name: "Fiona Draper"
+        role: "Art Dealer"
+      - name: "Marcus Hale"
+        role: "Collector"
+    order_sensitive: true
+    xp_reward: 5
+    hints:
+      - "Filter on the 'attended' column to include only gala attendees."
+      - "Use ORDER BY name ASC to sort alphabetically."
+
+  - slug: "follow-the-money"
+    order: 2
+    title: "Follow the Money"
+    prompt: |
+      Something suspicious stands out in the transactions. Find every
+      transaction where the amount exceeded £10,000. Return the suspect's
+      name, the amount, and the description. Order by amount descending.
+    schema_description: |
+      Table: suspects
+        id        INTEGER  PRIMARY KEY
+        name      TEXT     Full name
+        role      TEXT     Occupation
+        attended  INTEGER  Attendance flag
+
+      Table: transactions
+        id           INTEGER  PRIMARY KEY
+        suspect_id   INTEGER  FK → suspects.id
+        amount       REAL     Amount in GBP
+        description  TEXT     What the transaction was for
+        txn_time     TEXT     ISO-8601 timestamp
+    schema_sql: |
+      CREATE TABLE suspects (
+        id       INTEGER PRIMARY KEY,
+        name     TEXT NOT NULL,
+        role     TEXT NOT NULL,
+        attended INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE transactions (
+        id           INTEGER PRIMARY KEY,
+        suspect_id   INTEGER REFERENCES suspects(id),
+        amount       REAL NOT NULL,
+        description  TEXT,
+        txn_time     TEXT
+      );
+    seed_sql: |
+      INSERT INTO suspects VALUES
+        (1, 'Eleanor Voss',   'Art Dealer',  1),
+        (2, 'Marcus Hale',    'Collector',   1),
+        (3, 'Fiona Draper',   'Art Dealer',  1),
+        (4, 'Gregory Nunn',   'Auctioneer',  0);
+      INSERT INTO transactions VALUES
+        (1,  1,  5200.00, 'Lot 12 purchase',      '2024-06-14 19:45:00'),
+        (2,  2, 47000.00, 'Wire transfer out',     '2024-06-14 22:10:00'),
+        (3,  3,  1800.00, 'Lot 7 purchase',        '2024-06-14 20:30:00'),
+        (4,  2,   350.00, 'Catalogue subscription','2024-06-14 18:00:00'),
+        (5,  1,  2100.00, 'Lot 5 purchase',        '2024-06-14 21:00:00');
+    expected_result:
+      - name: "Marcus Hale"
+        amount: 47000.0
+        description: "Wire transfer out"
+    order_sensitive: false
+    xp_reward: 10
+    hints:
+      - "You'll need to JOIN suspects and transactions on suspect_id = suspects.id."
+      - "Use WHERE t.amount > 10000 to filter large transactions."
+
+  - slug: "name-the-culprit"
+    order: 3
+    title: "Name the Culprit"
+    prompt: |
+      The evidence is clear. Write a query that returns the name and role of
+      the suspect who made a transaction labelled 'Wire transfer out'.
+      This is your arrest query — get it right.
+    schema_description: |
+      Table: suspects  (id, name, role, attended)
+      Table: transactions  (id, suspect_id, amount, description, txn_time)
+    schema_sql: |
+      CREATE TABLE suspects (
+        id       INTEGER PRIMARY KEY,
+        name     TEXT NOT NULL,
+        role     TEXT NOT NULL,
+        attended INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE TABLE transactions (
+        id           INTEGER PRIMARY KEY,
+        suspect_id   INTEGER REFERENCES suspects(id),
+        amount       REAL NOT NULL,
+        description  TEXT,
+        txn_time     TEXT
+      );
+    seed_sql: |
+      INSERT INTO suspects VALUES
+        (1, 'Eleanor Voss',   'Art Dealer',  1),
+        (2, 'Marcus Hale',    'Collector',   1),
+        (3, 'Fiona Draper',   'Art Dealer',  1),
+        (4, 'Gregory Nunn',   'Auctioneer',  0);
+      INSERT INTO transactions VALUES
+        (1,  1,  5200.00, 'Lot 12 purchase',      '2024-06-14 19:45:00'),
+        (2,  2, 47000.00, 'Wire transfer out',     '2024-06-14 22:10:00'),
+        (3,  3,  1800.00, 'Lot 7 purchase',        '2024-06-14 20:30:00'),
+        (4,  2,   350.00, 'Catalogue subscription','2024-06-14 18:00:00'),
+        (5,  1,  2100.00, 'Lot 5 purchase',        '2024-06-14 21:00:00');
+    expected_result:
+      - name: "Marcus Hale"
+        role: "Collector"
+    order_sensitive: false
+    xp_reward: 15
+    hints:
+      - "JOIN the two tables, then filter transactions.description = 'Wire transfer out'."
+      - "SELECT only the name and role columns from suspects."

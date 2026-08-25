@@ -30,8 +30,7 @@ class SignupIn(BaseModel):
 
 
 @router.post("/signup")
-def signup(payload: SignupIn):
-    sess = get_session()
+def signup(payload: SignupIn, sess=Depends(get_session)):
     existing = sess.query(User).filter_by(email=payload.email).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -43,8 +42,7 @@ def signup(payload: SignupIn):
 
 
 @router.post("/login", response_model=Token)
-def login(form_data: OAuth2PasswordRequestForm = Depends()):
-    sess = get_session()
+def login(form_data: OAuth2PasswordRequestForm = Depends(), sess=Depends(get_session)):
     user = sess.query(User).filter_by(email=form_data.username).first()
     if not user or not bcrypt.verify(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
@@ -59,7 +57,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
 
-def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Security(security)):
+def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Security(security), sess=Depends(get_session)):
     if not credentials:
         return None
     token = credentials.credentials
@@ -68,7 +66,6 @@ def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Secur
         user_id = int(payload.get("sub"))
     except JWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
-    sess = get_session()
     user = sess.get(User, user_id)
     return user
 

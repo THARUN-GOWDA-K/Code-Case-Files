@@ -6,10 +6,9 @@ router = APIRouter()
 
 
 @router.get("/me")
-def my_attempts(user=Depends(get_current_user)):
+def my_attempts(user=Depends(get_current_user), sess=Depends(get_session)):
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    sess = get_session()
     rows = sess.query(Attempt).filter_by(user_id=user.id).order_by(Attempt.submitted_at.desc()).all()
     out = []
     for a in rows:
