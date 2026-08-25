@@ -11,7 +11,7 @@ from jose import jwt, JWTError
 from .models import get_session, User
 
 router = APIRouter()
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 SECRET_KEY = os.environ.get("SECRET_KEY", "dev-secret")
 ALGORITHM = "HS256"
@@ -64,9 +64,15 @@ def get_current_user(credentials: Optional[HTTPAuthorizationCredentials] = Secur
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         user_id = int(payload.get("sub"))
-    except JWTError:
+    except (JWTError, TypeError, ValueError):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     user = sess.get(User, user_id)
+    return user
+
+
+def require_user(user=Depends(get_current_user)):
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Authentication required")
     return user
 
 

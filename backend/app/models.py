@@ -29,6 +29,8 @@ class Stage(Base):
     id = Column(Integer, primary_key=True)
     case_id = Column(Integer, ForeignKey("cases.id"))
     title = Column(String(255))
+    prompt = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
     order = Column(Integer, default=1)
     time_limit_seconds = Column(Integer, default=2)
     memory_limit_mb = Column(Integer, default=256)

@@ -22,3 +22,19 @@ def get_case(case_id: int, sess=Depends(models.get_session)):
     if not case:
         raise HTTPException(status_code=404, detail="Case not found")
     return schemas.CaseOut.from_orm(case)
+
+
+@router.get("/{case_id}/stages/{stage_id}")
+def get_stage(case_id: int, stage_id: int, sess=Depends(models.get_session)):
+    stage = sess.query(models.Stage).filter_by(id=stage_id, case_id=case_id).first()
+    if not stage:
+        raise HTTPException(status_code=404, detail="Stage not found")
+    return {
+        "id": stage.id,
+        "title": stage.title,
+        "order": stage.order,
+        "prompt": stage.prompt,
+        "description": stage.description,
+        "time_limit_seconds": stage.time_limit_seconds,
+        "memory_limit_mb": stage.memory_limit_mb
+    }

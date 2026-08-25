@@ -2,202 +2,367 @@ import React, { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { getAttemptsMe } from '../lib/api'
 import { getMySqlSubmissions } from '../lib/sqlCases'
+import { Link } from 'react-router-dom'
+
+type Attempt = {
+  id: number; stage_id: number; status: string
+  score: number; tests_passed: number; total_tests: number; submitted_at?: string
+}
+type SqlSub = {
+  id: number; stage_id: number; correct: boolean
+  xp_awarded: number; feedback?: string; submitted_at?: string
+}
+
+function StatCard({ icon, label, value, color }: { icon: string; label: string; value: string | number; color?: string }) {
+  return (
+    <div style={{
+      background: 'var(--c-shadow)',
+      border: '1px solid var(--c-border)',
+      borderRadius: 'var(--r-md)',
+      padding: '1.25rem',
+      display: 'flex',
+      flexDirection: 'column',
+      gap: '0.4rem',
+      transition: 'all 200ms ease',
+    }}
+    onMouseEnter={e => (e.currentTarget.style.borderColor = 'rgba(148,163,184,0.2)')}
+    onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--c-border)')}
+    >
+      <div style={{ fontSize: '1.4rem' }}>{icon}</div>
+      <div style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: '1.5rem',
+        fontWeight: 700,
+        color: color || 'var(--c-text)',
+      }}>
+        {value}
+      </div>
+      <div style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: '0.72rem',
+        fontWeight: 600,
+        letterSpacing: '0.1em',
+        textTransform: 'uppercase',
+        color: 'var(--c-text-muted)',
+      }}>
+        {label}
+      </div>
+    </div>
+  )
+}
 
 export default function Profile() {
   const { user } = useAuth()
-  const [attempts, setAttempts] = useState<any[]>([])
-  const [sqlSubmissions, setSqlSubmissions] = useState<any[]>([])
+  const [attempts, setAttempts] = useState<Attempt[]>([])
+  const [sqlSubs, setSqlSubs] = useState<SqlSub[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
-    
-    Promise.all([
-      getAttemptsMe(),
-      getMySqlSubmissions()
-    ])
-      .then(([programmingAttempts, sqlData]) => {
-        setAttempts(programmingAttempts)
-        setSqlSubmissions(sqlData)
-      })
-      .catch((err) => {
-        console.error('Failed to fetch attempts:', err)
-        setError('Failed to load investigation history')
-        setAttempts([])
-        setSqlSubmissions([])
-      })
+    Promise.all([getAttemptsMe(), getMySqlSubmissions()])
+      .then(([a, s]) => { setAttempts(a); setSqlSubs(s) })
+      .catch(() => setError('Failed to load investigation history'))
       .finally(() => setLoading(false))
   }, [user])
 
-  if (loading) {
-    return (
-      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--color-redacted)' }}>
-        Loading case file...
+  if (loading) return (
+    <div style={{ animation: 'fadeIn 300ms ease' }}>
+      <div className="skeleton" style={{ height: 40, width: 240, marginBottom: '2rem' }} />
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1rem', marginBottom: '2rem' }}>
+        {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 100, borderRadius: 'var(--r-md)' }} />)}
       </div>
-    )
-  }
+      <div className="skeleton" style={{ height: 200, borderRadius: 'var(--r-md)' }} />
+    </div>
+  )
+
+  // Stats
+  const totalXp = user?.xp ?? 0
+  const pyPassed = attempts.filter(a => a.status === 'passed').length
+  const sqlSolved = sqlSubs.filter(s => s.correct).length
+  const totalCases = pyPassed + sqlSolved
 
   return (
-    <div>
-      <h2 style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: '2rem',
-        color: 'var(--color-typewriter)',
-        marginBottom: '2rem',
-        letterSpacing: '1px',
-      }}>
-        DETECTIVE PROFILE
-      </h2>
-      
-      {user ? (
-        <div className="dossier-card" style={{ marginBottom: '2rem' }}>
-          <h3 style={{
-            fontFamily: 'var(--font-display)',
-            color: 'var(--color-clue)',
-            marginBottom: '1rem',
-            fontSize: '1.3rem',
-          }}>
-            {user.display_name}
-          </h3>
-          <p style={{ color: 'var(--color-redacted)', marginBottom: '0.5rem' }}>
-            <strong style={{ color: 'var(--color-typewriter)' }}>Email:</strong> {user.email}
-          </p>
-          <p style={{ color: 'var(--color-redacted)' }}>
-            <strong style={{ color: 'var(--color-typewriter)' }}>Experience Points:</strong>{' '}
-            <span style={{ 
-              color: 'var(--color-verified)', 
-              fontFamily: 'var(--font-display)',
-              fontSize: '1.1rem',
-            }}>
-              {user.xp || 0} XP
-            </span>
-          </p>
+    <div style={{ animation: 'fadeIn 350ms ease' }}>
+      {/* Header */}
+      <div style={{ marginBottom: '2.5rem' }}>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '0.72rem',
+          fontWeight: 700,
+          letterSpacing: '0.15em',
+          textTransform: 'uppercase',
+          color: 'var(--c-amber)',
+          marginBottom: '0.75rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <span>🪪</span> Detective Dossier
         </div>
-      ) : (
-        <div className="dossier-card" style={{ marginBottom: '2rem' }}>
-          <p style={{ color: 'var(--color-redacted)' }}>Not signed in</p>
-        </div>
-      )}
 
-      <h3 style={{
-        fontFamily: 'var(--font-display)',
-        color: 'var(--color-typewriter)',
-        marginBottom: '1.5rem',
-        fontSize: '1.5rem',
-      }}>
-        PROGRAMMING INVESTIGATION HISTORY
-      </h3>
-      
-      {error ? (
-        <div className="verdict-banner verdict-error">
-          <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1.25rem', flexWrap: 'wrap' }}>
+          {/* Avatar */}
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #1e3a5f, #0f2845)',
+            border: '2px solid rgba(251,191,36,0.4)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1.75rem',
+            fontWeight: 700,
+            color: 'var(--c-amber)',
+            fontFamily: 'var(--font-display)',
+            flexShrink: 0,
+            boxShadow: '0 0 0 4px rgba(251,191,36,0.08)',
+          }}>
+            {user?.display_name?.[0]?.toUpperCase() ?? '?'}
+          </div>
+
           <div>
-            <div style={{ fontWeight: 'bold' }}>HISTORY UNAVAILABLE</div>
-            <div style={{ fontSize: '0.9rem', marginTop: '4px' }}>{error}</div>
+            <h2 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: '1.75rem',
+              fontWeight: 700,
+              color: 'var(--c-text)',
+              letterSpacing: '-0.02em',
+              marginBottom: '0.25rem',
+            }}>
+              Detective {user?.display_name}
+            </h2>
+            <div style={{ color: 'var(--c-text-muted)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
+              {user?.email}
+            </div>
+            <div style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.4rem',
+              padding: '0.25rem 0.75rem',
+              background: 'rgba(251,191,36,0.1)',
+              border: '1px solid rgba(251,191,36,0.2)',
+              borderRadius: 'var(--r-full)',
+              fontFamily: 'var(--font-display)',
+              fontSize: '0.8rem',
+              fontWeight: 700,
+              color: 'var(--c-amber)',
+            }}>
+              ⚡ {totalXp.toLocaleString()} XP
+            </div>
           </div>
         </div>
-      ) : attempts.length === 0 ? (
-        <div className="dossier-card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ 
-            color: 'var(--color-redacted)', 
-            fontSize: '1.1rem', 
-            marginBottom: '1rem',
-            fontFamily: 'var(--font-display)',
-          }}>
-            🔍 No programming investigation history yet
-          </p>
-          <p style={{ color: 'var(--color-redacted)' }}>
-            Start your first programming case to track your progress
-          </p>
-        </div>
-      ) : (
-        <div className="dossier-card">
-          <table className="results-table">
-            <thead>
-              <tr>
-                <th>Stage ID</th>
-                <th>Status</th>
-                <th>Score</th>
-                <th>Tests Passed</th>
-                <th>Total Tests</th>
-                <th>Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {attempts.map((a) => (
-                <tr key={a.id}>
-                  <td>{a.stage_id}</td>
-                  <td>
-                    <span className={`badge-stamp ${a.status === 'passed' ? 'stamp-easy' : a.status === 'failed' ? 'stamp-hard' : 'stamp-medium'}`}>
-                      {a.status || 'Unknown'}
-                    </span>
-                  </td>
-                  <td>{a.score || 0}</td>
-                  <td>{a.tests_passed || 0}</td>
-                  <td>{a.total_tests || 0}</td>
-                  <td>{a.submitted_at ? new Date(a.submitted_at).toLocaleString() : 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      </div>
+
+      {/* Stats grid */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+        gap: '1rem',
+        marginBottom: '2.5rem',
+      }}>
+        <StatCard icon="⚡" label="Total XP" value={totalXp.toLocaleString()} color="var(--c-amber)" />
+        <StatCard icon="✅" label="Cases Solved" value={totalCases} color="var(--c-success)" />
+        <StatCard icon="🐍" label="Python Solved" value={pyPassed} color="#3b82f6" />
+        <StatCard icon="🗄️" label="SQL Solved" value={sqlSolved} color="var(--c-info)" />
+      </div>
+
+      {error && (
+        <div className="notice notice-error" style={{ marginBottom: '2rem' }}>
+          <span>⚠</span><span>{error}</span>
         </div>
       )}
 
-      <h3 style={{
-        fontFamily: 'var(--font-display)',
-        color: 'var(--color-typewriter)',
-        marginBottom: '1.5rem',
-        marginTop: '3rem',
-        fontSize: '1.5rem',
-      }}>
-        SQL INVESTIGATION HISTORY
-      </h3>
-      
-      {sqlSubmissions.length === 0 ? (
-        <div className="dossier-card" style={{ textAlign: 'center', padding: '3rem' }}>
-          <p style={{ 
-            color: 'var(--color-redacted)', 
-            fontSize: '1.1rem', 
-            marginBottom: '1rem',
-            fontFamily: 'var(--font-display)',
+      {/* Python History */}
+      <div style={{ marginBottom: '3rem' }}>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: 'var(--c-amber)',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <span>🐍</span> Python Investigation History
+        </div>
+
+        {!error && attempts.length === 0 ? (
+          <div style={{
+            padding: '3rem',
+            textAlign: 'center',
+            background: 'var(--c-shadow)',
+            border: '1px solid var(--c-border)',
+            borderRadius: 'var(--r-lg)',
           }}>
-            🔍 No SQL investigation history yet
-          </p>
-          <p style={{ color: 'var(--color-redacted)' }}>
-            Start your first SQL case to track your progress
-          </p>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>📁</div>
+            <div style={{ fontFamily: 'var(--font-display)', color: 'var(--c-text-muted)', marginBottom: '0.5rem' }}>
+              No programming history yet
+            </div>
+            <Link to="/" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem', display: 'inline-flex' }}>
+              Start a Case →
+            </Link>
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--c-shadow)',
+            border: '1px solid var(--c-border)',
+            borderRadius: 'var(--r-md)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th>Stage</th>
+                    <th>Status</th>
+                    <th>Score</th>
+                    <th>Tests</th>
+                    <th>Submitted</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {attempts.map(a => (
+                    <tr key={a.id}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--c-text-muted)' }}>
+                        Stage #{a.stage_id}
+                      </td>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: 4,
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          background: a.status === 'passed' ? 'rgba(16,185,129,0.1)' : a.status === 'failed' ? 'rgba(244,63,94,0.1)' : 'rgba(245,158,11,0.1)',
+                          color: a.status === 'passed' ? 'var(--c-success)' : a.status === 'failed' ? 'var(--c-error)' : 'var(--c-warn)',
+                        }}>
+                          {a.status === 'passed' ? '✓ ' : a.status === 'failed' ? '✗ ' : '○ '}
+                          {a.status || 'Pending'}
+                        </span>
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontWeight: 600, color: 'var(--c-amber)' }}>
+                        {a.score}%
+                      </td>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.85rem', color: 'var(--c-text-muted)' }}>
+                        {a.tests_passed}/{a.total_tests}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--c-text-faint)' }}>
+                        {a.submitted_at ? new Date(a.submitted_at).toLocaleDateString() : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* SQL History */}
+      <div>
+        <div style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: '0.78rem',
+          fontWeight: 700,
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          color: 'var(--c-amber)',
+          marginBottom: '1rem',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.5rem',
+        }}>
+          <span>🗄️</span> SQL Investigation History
         </div>
-      ) : (
-        <div className="dossier-card">
-          <table className="results-table">
-            <thead>
-              <tr>
-                <th>Stage ID</th>
-                <th>Status</th>
-                <th>XP Awarded</th>
-                <th>Feedback</th>
-                <th>Submitted</th>
-              </tr>
-            </thead>
-            <tbody>
-              {sqlSubmissions.map((s) => (
-                <tr key={s.id}>
-                  <td>{s.stage_id}</td>
-                  <td>
-                    <span className={`badge-stamp ${s.correct ? 'stamp-easy' : 'stamp-hard'}`}>
-                      {s.correct ? 'SOLVED' : 'INCORRECT'}
-                    </span>
-                  </td>
-                  <td>{s.xp_awarded || 0} XP</td>
-                  <td>{s.feedback || 'No feedback'}</td>
-                  <td>{s.submitted_at ? new Date(s.submitted_at).toLocaleString() : 'N/A'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+
+        {sqlSubs.length === 0 ? (
+          <div style={{
+            padding: '3rem',
+            textAlign: 'center',
+            background: 'var(--c-shadow)',
+            border: '1px solid var(--c-border)',
+            borderRadius: 'var(--r-lg)',
+          }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.75rem' }}>🗄️</div>
+            <div style={{ fontFamily: 'var(--font-display)', color: 'var(--c-text-muted)', marginBottom: '0.5rem' }}>
+              No SQL history yet
+            </div>
+            <Link to="/sql-cases" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem', display: 'inline-flex' }}>
+              Start SQL Case →
+            </Link>
+          </div>
+        ) : (
+          <div style={{
+            background: 'var(--c-shadow)',
+            border: '1px solid var(--c-border)',
+            borderRadius: 'var(--r-md)',
+            overflow: 'hidden',
+          }}>
+            <div style={{ overflowX: 'auto' }}>
+              <table className="results-table">
+                <thead>
+                  <tr>
+                    <th>Stage</th>
+                    <th>Result</th>
+                    <th>XP Earned</th>
+                    <th>Feedback</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sqlSubs.map(s => (
+                    <tr key={s.id}>
+                      <td style={{ fontFamily: 'var(--font-mono)', fontSize: '0.8rem', color: 'var(--c-text-muted)' }}>
+                        Stage #{s.stage_id}
+                      </td>
+                      <td>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.3rem',
+                          padding: '0.15rem 0.5rem',
+                          borderRadius: 4,
+                          fontFamily: 'var(--font-display)',
+                          fontSize: '0.68rem',
+                          fontWeight: 700,
+                          letterSpacing: '0.06em',
+                          textTransform: 'uppercase',
+                          background: s.correct ? 'rgba(16,185,129,0.1)' : 'rgba(244,63,94,0.1)',
+                          color: s.correct ? 'var(--c-success)' : 'var(--c-error)',
+                        }}>
+                          {s.correct ? '✓ Solved' : '✗ Incorrect'}
+                        </span>
+                      </td>
+                      <td style={{
+                        fontFamily: 'var(--font-display)', fontWeight: 700,
+                        color: s.xp_awarded > 0 ? 'var(--c-success)' : 'var(--c-text-faint)',
+                      }}>
+                        {s.xp_awarded > 0 ? `+${s.xp_awarded}` : '—'}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--c-text-muted)', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {s.feedback || '—'}
+                      </td>
+                      <td style={{ fontSize: '0.8rem', color: 'var(--c-text-faint)' }}>
+                        {s.submitted_at ? new Date(s.submitted_at).toLocaleDateString() : 'N/A'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
