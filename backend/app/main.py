@@ -9,6 +9,9 @@ from .api import attempts
 from .sql_cases.router import router as sql_cases_router
 from .sql_cases.loader import load_all_cases
 from .sql_cases.models import SqldCase
+from .api.shop import router as shop_router, seed_shop_items
+from .api.leaderboard import router as leaderboard_router
+from .api.achievements import router as achievements_router, seed_achievements
 
 
 @asynccontextmanager
@@ -30,6 +33,8 @@ async def lifespan(app: FastAPI):
         seed_additional_cases()
         seed_sample_case()
         print("[startup] Programming cases seeded.")
+    seed_shop_items()
+    seed_achievements()
     yield
 
 
@@ -51,6 +56,9 @@ from .api import hints
 app.include_router(hints.router, prefix="/api/hints")
 app.include_router(attempts.router, prefix="/api/attempts")
 app.include_router(sql_cases_router, prefix="/api/sql-cases")
+app.include_router(shop_router, prefix="/api/shop")
+app.include_router(leaderboard_router, prefix="/api/leaderboard")
+app.include_router(achievements_router, prefix="/api/achievements")
 
 
 @app.get("/")

@@ -32,8 +32,11 @@ export default function Nav() {
   const isActive = (p: string) => location.pathname === p || location.pathname.startsWith(p + '/')
 
   const navLinks = [
-    { to: '/',          label: 'Code Cases', icon: '🔍' },
-    { to: '/sql-cases', label: 'SQL Cases',  icon: '🗄️' },
+    { to: '/',           label: 'Dashboard',  icon: '🗺️' },
+    { to: '/sql-cases',  label: 'SQL Cases',  icon: '🗄️' },
+    { to: '/cases',      label: 'Code Cases', icon: '🔍' },
+    { to: '/shop',       label: 'Shop',       icon: '🏪' },
+    { to: '/leaderboard',label: 'Leaders',    icon: '🏆' },
   ]
 
   return (

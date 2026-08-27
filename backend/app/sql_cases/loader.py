@@ -81,6 +81,9 @@ def _upsert_case_file(sess, path: str) -> None:
     case.title = data["title"]
     case.story_intro = data.get("story_intro", "")
     case.difficulty = data.get("difficulty", "easy")
+    case.intro_dialogue = data.get("intro_dialogue", "")
+    case.epilogue_text = data.get("epilogue_text", "")
+    case.npc_characters = data.get("npc_characters", [])
 
     # Flush so case.id is available for FK references
     sess.flush()
@@ -110,6 +113,7 @@ def _upsert_case_file(sess, path: str) -> None:
         stage.order_sensitive = stage_data.get("order_sensitive", False)
         stage.xp_reward = stage_data.get("xp_reward", 10)
         stage.hints = stage_data.get("hints", [])
+        stage.npc_hints = stage_data.get("npc_hints", [])
 
     # Removed stages (in DB but not in YAML) are left in place so existing
     # SqldSubmission rows remain valid and no FK violation can occur.

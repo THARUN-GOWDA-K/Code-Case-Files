@@ -21,6 +21,9 @@ class SqldCase(Base):
     title = Column(String(255), nullable=False)
     story_intro = Column(Text)          # narrative flavour text shown before puzzles
     difficulty = Column(String(50), default="easy")
+    intro_dialogue = Column(Text)
+    epilogue_text = Column(Text)
+    npc_characters = Column(JSON, default=[])
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     stages = relationship("SqldStage", back_populates="case", order_by="SqldStage.order")
@@ -44,6 +47,7 @@ class SqldStage(Base):
     order_sensitive = Column(Boolean, default=False)
     xp_reward = Column(Integer, default=10)
     hints = Column(JSON, default=[])   # list of hint strings
+    npc_hints = Column(JSON, default=[])
 
     case = relationship("SqldCase", back_populates="stages")
     submissions = relationship("SqldSubmission", back_populates="stage")

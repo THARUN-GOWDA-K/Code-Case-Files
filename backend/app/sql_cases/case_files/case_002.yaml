@@ -1,211 +1,199 @@
-slug: "case-002-cold-case"
+﻿slug: "case-002-cold-case"
 title: "Case #002 — Cold Case"
+chapter: 2
 difficulty: "medium"
 story_intro: |
-  Three years ago, a priceless necklace was stolen from the mansion of 
-  industrialist Henry Caldwell during his annual winter gala. The case went cold 
-  after the primary suspect fled the country. New evidence has surfaced: a partial 
-  database from Caldwell's home security system and witness statements.
-  
-  Your task: analyze the evidence, identify the thief, and bring this cold case 
-  to a close.
+  Three years ago, a priceless necklace was stolen from the mansion of
+  industrialist Henry Caldwell during his annual winter gala. The case went cold
+  after the primary suspect fled the country. New evidence has surfaced: a partial
+  database from Caldwell's home security system.
+  Your task: analyze the evidence, identify the thief, and bring this cold case to a close.
+
+intro_dialogue: |
+  Commissioner Blake sets down his coffee and looks at you gravely.
+  "Three years ago this case broke me, Detective. Victoria Blackwood walked
+  because we couldn't prove she was there at the right time. Now we have
+  a recovered security log database. Dr. Chen says it's intact. Let's finish this."
+
+epilogue_text: |
+  Victoria Blackwood. The necklace was in her possession in Paris — she'd stolen it
+  to fund a gambling debt no one knew about. With the security log evidence, extradition
+  is now possible. Commissioner Blake looks at you with something rare: respect.
+  "Good work. But this case connects to something bigger. Someone helped her move that
+  necklace out of the country. We need to find out who — and that means going deeper."
+
+npc_characters:
+  - id: "blake"
+    name: "Commissioner Blake"
+    avatar: "👮"
+    title: "Metropolitan Police Commissioner"
+  - id: "maya"
+    name: "Dr. Maya Chen"
+    avatar: "👩‍🔬"
+    title: "Tech Forensics Expert"
+  - id: "riya"
+    name: "Riya Sharma"
+    avatar: "👩‍💼"
+    title: "Junior Detective"
 
 stages:
   - slug: "suspect-profiles"
     order: 1
     title: "Suspect Profiles"
     prompt: |
-      Begin by creating a comprehensive profile of all persons of interest. 
+      Begin by creating a comprehensive profile of all persons of interest.
       Return the full name, occupation, and last known location of each suspect.
-      Order by last name ascending.
+      Order by name ascending (A to Z).
     schema_description: |
       Table: suspects
-        id        INTEGER  PRIMARY KEY
-        name      TEXT     Full name
-        occupation TEXT     Their job
-        last_known_location TEXT Where they were last seen
-        is_primary BOOLEAN  Whether they are a primary suspect
+        id                   INTEGER  PRIMARY KEY
+        name                 TEXT     Full name
+        occupation           TEXT     Their job
+        last_known_location  TEXT     Where they were last seen
+        is_primary           INTEGER  1 if primary suspect, 0 otherwise
     schema_sql: |
       CREATE TABLE suspects (
         id       INTEGER PRIMARY KEY,
         name     TEXT NOT NULL,
         occupation TEXT NOT NULL,
         last_known_location TEXT,
-        is_primary BOOLEAN DEFAULT 0
+        is_primary INTEGER DEFAULT 0
       );
     seed_sql: |
       INSERT INTO suspects VALUES
-        (1, 'Victoria Blackwood', 'Art Dealer', 'Paris, France', 1),
-        (2, 'Thomas Caldwell', 'Heir', 'London, England', 0),
-        (3, 'Elena Rossi', 'Maid', 'Geneva, Switzerland', 0),
-        (4, 'James Sterling', 'Security Guard', 'Unknown', 0),
-        (5, 'Arthur Pendelton', 'Family Lawyer', 'New York, USA', 0);
+        (1, 'Victoria Blackwood', 'Art Dealer',      'Paris, France',    1),
+        (2, 'Thomas Caldwell',    'Heir',             'London, England',  0),
+        (3, 'Elena Rossi',        'Maid',             'Geneva, Switzerland', 0),
+        (4, 'James Sterling',     'Security Guard',   'Unknown',          0),
+        (5, 'Arthur Pendelton',   'Family Lawyer',    'New York, USA',    0);
     expected_result:
-      - name: "Victoria Blackwood"
-        occupation: "Art Dealer"
-        last_known_location: "Paris, France"
-        is_primary: true
-      - name: "Elena Rossi"
-        occupation: "Maid"
-        last_known_location: "Geneva, Switzerland"
-        is_primary: false
-      - name: "James Sterling"
-        occupation: "Security Guard"
-        last_known_location: "Unknown"
-        is_primary: false
-      - name: "Thomas Caldwell"
-        occupation: "Heir"
-        last_known_location: "London, England"
-        is_primary: false
       - name: "Arthur Pendelton"
         occupation: "Family Lawyer"
         last_known_location: "New York, USA"
-        is_primary: false
+      - name: "Elena Rossi"
+        occupation: "Maid"
+        last_known_location: "Geneva, Switzerland"
+      - name: "James Sterling"
+        occupation: "Security Guard"
+        last_known_location: "Unknown"
+      - name: "Thomas Caldwell"
+        occupation: "Heir"
+        last_known_location: "London, England"
+      - name: "Victoria Blackwood"
+        occupation: "Art Dealer"
+        last_known_location: "Paris, France"
     order_sensitive: true
     xp_reward: 10
     hints:
-      - "Use WHERE is_primary = 1 to focus on primary suspects first."
-      - "ORDER BY name ASC will sort alphabetically by last name."
+      - "SELECT name, occupation, last_known_location FROM suspects — no filter needed this time."
+      - "ORDER BY name ASC sorts alphabetically by the first character of the full name."
+    npc_hints:
+      - character: "blake"
+        dialogue: "Background checks first. I need names, occupations, and last known locations on all five suspects. Alphabetical — no excuses."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "Simple SELECT on the suspects table. Grab name, occupation, last_known_location. ORDER BY name ASC. No filter needed — all five are persons of interest."
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "All suspects, no WHERE clause needed — just SELECT the right columns and ORDER BY name! You've got this."
+        xp_cost: 0
 
   - slug: "evidence-analysis"
     order: 2
     title: "Evidence Analysis"
     prompt: |
-      Cross-reference witness statements with security logs. Find all witnesses 
-      who were present at the mansion between 8 PM and midnight on the night of the theft.
-      Return their names and the times they were logged entering or exiting.
+      Review the security logs for the night of the theft. Find the name,
+      action time, and action type for all persons who entered through the
+      'Main Entrance'. Order by action_time ascending.
     schema_description: |
-      Table: witnesses
-        id        INTEGER  PRIMARY KEY
-        name      TEXT     Witness name
-        entry_time TEXT     Time they entered (ISO format)
-        exit_time  TEXT     Time they left (ISO format)
-        entry_exit TEXT     Whether they entered or exited
-      
       Table: security_logs
         id           INTEGER  PRIMARY KEY
-        person_name   TEXT     Person name
-        action_time   TEXT     Timestamp of action
-        action_type   TEXT     'entry' or 'exit'
-        location     TEXT     Which door/area
+        person_name  TEXT     Name of person logged
+        action_time  TEXT     ISO timestamp of the event
+        action_type  TEXT     'entry' or 'exit'
+        location     TEXT     Which entrance or area
     schema_sql: |
-      CREATE TABLE witnesses (
-        id       INTEGER PRIMARY KEY,
-        name     TEXT NOT NULL,
-        entry_time TEXT,
-        exit_time  TEXT,
-        entry_exit TEXT
-      );
       CREATE TABLE security_logs (
         id           INTEGER PRIMARY KEY,
-        person_name   TEXT NOT NULL,
-        action_time   TEXT NOT NULL,
-        action_type   TEXT NOT NULL,
+        person_name  TEXT NOT NULL,
+        action_time  TEXT NOT NULL,
+        action_type  TEXT NOT NULL,
         location     TEXT
       );
     seed_sql: |
-      INSERT INTO witnesses VALUES
-        (1, 'Victoria Blackwood', '2021-12-14T20:15:00', '2021-12-14T23:45:00', 'entry'),
-        (2, 'Thomas Caldwell', '2021-12-14T19:30:00', '2021-12-14T22:00:00', 'entry'),
-        (3, 'Elena Rossi', '2021-12-14T18:00:00', '2021-12-14T02:00:00', 'entry'),
-        (4, 'James Sterling', '2021-12-14T16:00:00', '2021-12-14T24:00:00', 'entry'),
-        (5, 'Arthur Pendelton', '2021-12-14T21:00:00', '2021-12-14T23:30:00', 'entry');
       INSERT INTO security_logs VALUES
-        (1, 'Victoria Blackwood', '2021-12-14T20:15:00', 'entry', 'Main Entrance'),
-        (2, 'Victoria Blackwood', '2021-12-14T23:45:00', 'exit', 'Main Entrance'),
-        (3, 'Thomas Caldwell', '2021-12-14T19:30:00', 'entry', 'Main Entrance'),
-        (4, 'Thomas Caldwell', '2021-12-14T22:00:00', 'exit', 'Main Entrance'),
-        (5, 'Elena Rossi', '2021-12-14T18:00:00', 'entry', 'Service Entrance'),
-        (6, 'Elena Rossi', '2021-12-14T02:00:00', 'exit', 'Service Entrance'),
-        (7, 'James Sterling', '2021-12-14T16:00:00', 'entry', 'Security Office'),
-        (8, 'James Sterling', '2021-12-14T24:00:00', 'exit', 'Security Office'),
-        (9, 'Arthur Pendelton', '2021-12-14T21:00:00', 'entry', 'Library'),
-        (10, 'Arthur Pendelton', '2021-12-14T23:30:00', 'exit', 'Library');
+        (1,  'Victoria Blackwood', '2021-12-14T20:15:00', 'entry', 'Main Entrance'),
+        (2,  'Victoria Blackwood', '2021-12-14T23:45:00', 'exit',  'Main Entrance'),
+        (3,  'Thomas Caldwell',    '2021-12-14T19:30:00', 'entry', 'Main Entrance'),
+        (4,  'Thomas Caldwell',    '2021-12-14T22:00:00', 'exit',  'Main Entrance'),
+        (5,  'Elena Rossi',        '2021-12-14T18:00:00', 'entry', 'Service Entrance'),
+        (6,  'Elena Rossi',        '2021-12-15T02:00:00', 'exit',  'Service Entrance'),
+        (7,  'James Sterling',     '2021-12-14T16:00:00', 'entry', 'Security Office'),
+        (8,  'James Sterling',     '2021-12-15T00:00:00', 'exit',  'Security Office'),
+        (9,  'Arthur Pendelton',   '2021-12-14T21:00:00', 'entry', 'Library'),
+        (10, 'Arthur Pendelton',   '2021-12-14T23:30:00', 'exit',  'Library');
     expected_result:
-      - name: "Victoria Blackwood"
-        time: "2021-12-14T20:15:00"
-        action: "entry"
-      - name: "Thomas Caldwell"
-        time: "2021-12-14T19:30:00"
-        action: "entry"
-      - name: "Elena Rossi"
-        time: "2021-12-14T18:00:00"
-        action: "entry"
-      - name: "James Sterling"
-        time: "2021-12-14T16:00:00"
-        action: "entry"
-      - name: "Arthur Pendelton"
-        time: "2021-12-14T21:00:00"
-        action: "entry"
-    order_sensitive: false
+      - person_name: "Thomas Caldwell"
+        action_time: "2021-12-14T19:30:00"
+        action_type: "entry"
+      - person_name: "Victoria Blackwood"
+        action_time: "2021-12-14T20:15:00"
+        action_type: "entry"
+    order_sensitive: true
     xp_reward: 15
     hints:
-      - "JOIN the two tables on name and match timestamps within the time window."
-      - "Filter for actions between 20:00 and 00:00 (8 PM to midnight)."
+      - "Filter WHERE location = 'Main Entrance' AND action_type = 'entry'."
+      - "Return person_name, action_time, action_type — exactly those column names."
+    npc_hints:
+      - character: "blake"
+        dialogue: "The security logs don't lie. Who used the Main Entrance that night? Build me a timeline."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "SELECT person_name, action_time, action_type FROM security_logs WHERE location = 'Main Entrance' AND action_type = 'entry' ORDER BY action_time ASC"
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "Check the location column in security_logs — filter for 'Main Entrance' entries only. Note the exact column names: person_name, action_time, action_type!"
+        xp_cost: 0
 
   - slug: "final-deduction"
     order: 3
     title: "Final Deduction"
     prompt: |
-      The necklace was found in Victoria Blackwood's possession in Paris. 
-      However, she claims she was framed. Analyze the timeline: 
-      who had the means, motive, and opportunity? Return the name of the 
-      person who most likely committed the theft based on the evidence.
+      The necklace was found with the primary suspect. Confirm who it is by
+      returning their name and last known location.
+      Filter using the is_primary flag (is_primary = 1).
     schema_description: |
       Table: suspects (id, name, occupation, last_known_location, is_primary)
-      Table: security_logs (id, person_name, action_time, action_type, location)
-      Table: witnesses (id, name, entry_time, exit_time, entry_exit)
     schema_sql: |
       CREATE TABLE suspects (
         id       INTEGER PRIMARY KEY,
         name     TEXT NOT NULL,
         occupation TEXT NOT NULL,
         last_known_location TEXT,
-        is_primary BOOLEAN DEFAULT 0
-      );
-      CREATE TABLE security_logs (
-        id           INTEGER PRIMARY KEY,
-        person_name   TEXT NOT NULL,
-        action_time   TEXT NOT NULL,
-        action_type   TEXT NOT NULL,
-        location     TEXT
-      );
-      CREATE TABLE witnesses (
-        id       INTEGER PRIMARY KEY,
-        name     TEXT NOT NULL,
-        entry_time TEXT,
-        exit_time  TEXT,
-        entry_exit TEXT
+        is_primary INTEGER DEFAULT 0
       );
     seed_sql: |
       INSERT INTO suspects VALUES
-        (1, 'Victoria Blackwood', 'Art Dealer', 'Paris, France', 1),
-        (2, 'Thomas Caldwell', 'Heir', 'London, England', 0),
-        (3, 'Elena Rossi', 'Maid', 'Geneva, Switzerland', 0),
-        (4, 'James Sterling', 'Security Guard', 'Unknown', 0),
-        (5, 'Arthur Pendelton', 'Family Lawyer', 'New York, USA', 0);
-      INSERT INTO security_logs VALUES
-        (1, 'Victoria Blackwood', '2021-12-14T20:15:00', 'entry', 'Main Entrance'),
-        (2, 'Victoria Blackwood', '2021-12-14T23:45:00', 'exit', 'Main Entrance'),
-        (3, 'Thomas Caldwell', '2021-12-14T19:30:00', 'entry', 'Main Entrance'),
-        (4, 'Thomas Caldwell', '2021-12-14T22:00:00', 'exit', 'Main Entrance'),
-        (5, 'Elena Rossi', '2021-12-14T18:00:00', 'entry', 'Service Entrance'),
-        (6, 'Elena Rossi', '2021-12-14T02:00:00', 'exit', 'Service Entrance'),
-        (7, 'James Sterling', '2021-12-14T16:00:00', 'entry', 'Security Office'),
-        (8, 'James Sterling', '2021-12-14T24:00:00', 'exit', 'Security Office'),
-        (9, 'Arthur Pendelton', '2021-12-14T21:00:00', 'entry', 'Library'),
-        (10, 'Arthur Pendelton', '2021-12-14T23:30:00', 'exit', 'Library');
-      INSERT INTO witnesses VALUES
-        (1, 'Victoria Blackwood', '2021-12-14T20:15:00', '2021-12-14T23:45:00', 'entry'),
-        (2, 'Thomas Caldwell', '2021-12-14T19:30:00', '2021-12-14T22:00:00', 'entry'),
-        (3, 'Elena Rossi', '2021-12-14T18:00:00', '2021-12-14T02:00:00', 'entry'),
-        (4, 'James Sterling', '2021-12-14T16:00:00', '2021-12-14T24:00:00', 'entry'),
-        (5, 'Arthur Pendelton', '2021-12-14T21:00:00', '2021-12-14T23:30:00', 'entry');
+        (1, 'Victoria Blackwood', 'Art Dealer',      'Paris, France',       1),
+        (2, 'Thomas Caldwell',    'Heir',             'London, England',     0),
+        (3, 'Elena Rossi',        'Maid',             'Geneva, Switzerland', 0),
+        (4, 'James Sterling',     'Security Guard',   'Unknown',             0),
+        (5, 'Arthur Pendelton',   'Family Lawyer',    'New York, USA',       0);
     expected_result:
-      - name: "Thomas Caldwell"
-        reasoning: "Only Thomas Caldwell was present during the theft window (8 PM-midnight) and had both motive (inheritance) and opportunity (present at gala). Victoria Blackwood left before the theft window."
+      - name: "Victoria Blackwood"
+        last_known_location: "Paris, France"
     order_sensitive: false
     xp_reward: 20
     hints:
-      - "Focus on who was present during the actual theft window (8 PM to midnight)."
-      - "Consider the motive: who would benefit from the necklace being stolen?"
+      - "Filter WHERE is_primary = 1 to find the primary suspect."
+      - "SELECT name and last_known_location — those are the two columns you need."
+    npc_hints:
+      - character: "blake"
+        dialogue: "Victoria Blackwood was found with the necklace in Paris. The database will confirm she is our primary suspect. Retrieve her name and location."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "SELECT name, last_known_location FROM suspects WHERE is_primary = 1 — clean and simple. The is_primary flag is an INTEGER: 1 means primary suspect."
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "Almost done! Just filter for is_primary = 1 and grab the name and last_known_location. Case closed!"
+        xp_cost: 0

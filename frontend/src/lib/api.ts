@@ -47,3 +47,38 @@ export async function getStageDetail(caseId: number | string, stageId: number | 
   const res = await fetch(`/api/challenges/${caseId}/stages/${stageId}`)
   return responseJson(res)
 }
+
+export async function getCases() {
+  const res = await fetch('/api/challenges/')
+  return responseJson(res)
+}
+
+export async function getShopItems() {
+  const res = await fetch('/api/shop/items')
+  return responseJson(res)
+}
+
+export async function purchaseItem(itemId: number) {
+  const res = await authenticatedFetch('/api/shop/purchase/' + itemId, { method: 'POST', body: '{}' })
+  return responseJson(res)
+}
+
+export async function getInventory() {
+  const res = await authenticatedFetch('/api/shop/inventory')
+  return responseJson(res)
+}
+
+export async function getLeaderboard() {
+  const res = await fetch('/api/leaderboard/top')
+  return responseJson(res)
+}
+
+export async function getAchievements() {
+  const res = await fetch('/api/achievements/')
+  return responseJson(res)
+}
+
+export async function getMyAchievements() {
+  const res = await authenticatedFetch('/api/achievements/mine')
+  return responseJson(res)
+}

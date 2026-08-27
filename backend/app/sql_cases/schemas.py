@@ -15,6 +15,7 @@ class SqldStageOut(BaseModel):
     schema_description: Optional[str] = None
     xp_reward: int
     hints: List[str] = []
+    npc_hints: list = []
 
     class Config:
         orm_mode = True
@@ -35,6 +36,9 @@ class SqldCaseOut(BaseModel):
     title: str
     story_intro: Optional[str] = None
     difficulty: Optional[str] = None
+    intro_dialogue: Optional[str] = None
+    epilogue_text: Optional[str] = None
+    npc_characters: list = []
     stages: List[SqldStageSummary] = []
 
     class Config:
@@ -47,6 +51,9 @@ class SqldCaseDetailOut(BaseModel):
     title: str
     story_intro: Optional[str] = None
     difficulty: Optional[str] = None
+    intro_dialogue: Optional[str] = None
+    epilogue_text: Optional[str] = None
+    npc_characters: list = []
     stages: List[SqldStageOut] = []
 
     class Config:

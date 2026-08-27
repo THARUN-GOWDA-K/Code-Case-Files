@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { getAttemptsMe } from '../lib/api'
+import { getAttemptsMe, getAchievements, getMyAchievements } from '../lib/api'
 import { getMySqlSubmissions } from '../lib/sqlCases'
 import { Link } from 'react-router-dom'
 
@@ -11,6 +11,22 @@ type Attempt = {
 type SqlSub = {
   id: number; stage_id: number; correct: boolean
   xp_awarded: number; feedback?: string; submitted_at?: string
+}
+type Achievement = {
+  id: number
+  slug: string
+  name: string
+  description: string
+  icon: string
+  xp_reward: number
+}
+type MyAchievement = {
+  id: number
+  slug: string
+  name: string
+  description: string
+  icon: string
+  unlocked_at?: string
 }
 
 function StatCard({ icon, label, value, color }: { icon: string; label: string; value: string | number; color?: string }) {
@@ -55,13 +71,25 @@ export default function Profile() {
   const { user } = useAuth()
   const [attempts, setAttempts] = useState<Attempt[]>([])
   const [sqlSubs, setSqlSubs] = useState<SqlSub[]>([])
+  const [allAchievements, setAllAchievements] = useState<Achievement[]>([])
+  const [myAchievements, setMyAchievements] = useState<MyAchievement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!user) return
-    Promise.all([getAttemptsMe(), getMySqlSubmissions()])
-      .then(([a, s]) => { setAttempts(a); setSqlSubs(s) })
+    Promise.all([
+      getAttemptsMe().catch(() => []),
+      getMySqlSubmissions().catch(() => []),
+      getAchievements().catch(() => []),
+      getMyAchievements().catch(() => []),
+    ])
+      .then(([a, s, ach, myAch]) => {
+        setAttempts(a)
+        setSqlSubs(s)
+        setAllAchievements(ach)
+        setMyAchievements(myAch)
+      })
       .catch(() => setError('Failed to load investigation history'))
       .finally(() => setLoading(false))
   }, [user])
@@ -81,6 +109,10 @@ export default function Profile() {
   const pyPassed = attempts.filter(a => a.status === 'passed').length
   const sqlSolved = sqlSubs.filter(s => s.correct).length
   const totalCases = pyPassed + sqlSolved
+  const streak = (user as any)?.streak ?? 1
+  const rankTitle = (user as any)?.rank_title ?? 'Rookie Detective'
+
+  const unlockedSlugs = new Set(myAchievements.map(a => a.slug))
 
   return (
     <div style={{ animation: 'fadeIn 350ms ease' }}>
@@ -123,6 +155,9 @@ export default function Profile() {
           </div>
 
           <div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.75rem', color: 'var(--c-amber)', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: '0.2rem' }}>
+              🎖️ {rankTitle}
+            </div>
             <h2 style={{
               fontFamily: 'var(--font-display)',
               fontSize: '1.75rem',
@@ -136,20 +171,39 @@ export default function Profile() {
             <div style={{ color: 'var(--c-text-muted)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>
               {user?.email}
             </div>
-            <div style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '0.4rem',
-              padding: '0.25rem 0.75rem',
-              background: 'rgba(251,191,36,0.1)',
-              border: '1px solid rgba(251,191,36,0.2)',
-              borderRadius: 'var(--r-full)',
-              fontFamily: 'var(--font-display)',
-              fontSize: '0.8rem',
-              fontWeight: 700,
-              color: 'var(--c-amber)',
-            }}>
-              ⚡ {totalXp.toLocaleString()} XP
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', alignItems: 'center' }}>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.4rem',
+                padding: '0.25rem 0.75rem',
+                background: 'rgba(251,191,36,0.1)',
+                border: '1px solid rgba(251,191,36,0.2)',
+                borderRadius: 'var(--r-full)',
+                fontFamily: 'var(--font-display)',
+                fontSize: '0.8rem',
+                fontWeight: 700,
+                color: 'var(--c-amber)',
+              }}>
+                ⚡ {totalXp.toLocaleString()} XP
+              </div>
+              {streak > 0 && (
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  padding: '0.25rem 0.75rem',
+                  background: 'rgba(249,115,22,0.1)',
+                  border: '1px solid rgba(249,115,22,0.25)',
+                  borderRadius: 'var(--r-full)',
+                  fontFamily: 'var(--font-display)',
+                  fontSize: '0.8rem',
+                  fontWeight: 700,
+                  color: '#f97316',
+                }}>
+                  🔥 {streak} Day Streak
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -164,9 +218,61 @@ export default function Profile() {
       }}>
         <StatCard icon="⚡" label="Total XP" value={totalXp.toLocaleString()} color="var(--c-amber)" />
         <StatCard icon="✅" label="Cases Solved" value={totalCases} color="var(--c-success)" />
-        <StatCard icon="🐍" label="Python Solved" value={pyPassed} color="#3b82f6" />
+        <StatCard icon="🔥" label="Login Streak" value={streak + ' d'} color="#f97316" />
         <StatCard icon="🗄️" label="SQL Solved" value={sqlSolved} color="var(--c-info)" />
       </div>
+
+      {/* Achievements Showcase */}
+      {allAchievements.length > 0 && (
+        <div style={{ marginBottom: '3rem' }}>
+          <div style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: '0.78rem',
+            fontWeight: 700,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
+            color: 'var(--c-amber)',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+          }}>
+            <span>🏆</span> Detective Badges ({myAchievements.length}/{allAchievements.length})
+          </div>
+
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
+            gap: '0.75rem',
+          }}>
+            {allAchievements.map(ach => {
+              const unlocked = unlockedSlugs.has(ach.slug)
+              return (
+                <div key={ach.id} style={{
+                  padding: '1rem',
+                  background: unlocked ? 'rgba(251,191,36,0.05)' : 'rgba(255,255,255,0.02)',
+                  border: '1px solid ' + (unlocked ? 'rgba(251,191,36,0.25)' : 'var(--c-border)'),
+                  borderRadius: 'var(--r-md)',
+                  opacity: unlocked ? 1 : 0.45,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.75rem',
+                }}>
+                  <div style={{ fontSize: '1.8rem', flexShrink: 0 }}>{ach.icon}</div>
+                  <div>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: '0.875rem', color: unlocked ? 'var(--c-text)' : 'var(--c-text-muted)' }}>
+                      {ach.name}
+                    </div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--c-text-muted)', lineHeight: 1.4 }}>
+                      {ach.description}
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       {error && (
         <div className="notice notice-error" style={{ marginBottom: '2rem' }}>
@@ -203,7 +309,7 @@ export default function Profile() {
             <div style={{ fontFamily: 'var(--font-display)', color: 'var(--c-text-muted)', marginBottom: '0.5rem' }}>
               No programming history yet
             </div>
-            <Link to="/" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem', display: 'inline-flex' }}>
+            <Link to="/cases" className="btn btn-primary btn-sm" style={{ marginTop: '0.5rem', display: 'inline-flex' }}>
               Start a Case →
             </Link>
           </div>
@@ -344,7 +450,8 @@ export default function Profile() {
                         </span>
                       </td>
                       <td style={{
-                        fontFamily: 'var(--font-display)', fontWeight: 700,
+                        fontFamily: 'var(--font-display)',
+                        fontWeight: 700,
                         color: s.xp_awarded > 0 ? 'var(--c-success)' : 'var(--c-text-faint)',
                       }}>
                         {s.xp_awarded > 0 ? `+${s.xp_awarded}` : '—'}

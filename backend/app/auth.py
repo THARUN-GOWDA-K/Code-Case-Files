@@ -46,6 +46,29 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), sess=Depends(get_ses
     user = sess.query(User).filter_by(email=form_data.username).first()
     if not user or not bcrypt.verify(form_data.password, user.password_hash):
         raise HTTPException(status_code=400, detail="Incorrect username or password")
+    
+    # Update login streak
+    from datetime import datetime, timezone
+    now = datetime.now(timezone.utc)
+    last = user.last_login
+    if last is None:
+        user.streak = 1
+    else:
+        last_date = last.date() if hasattr(last, 'date') else last
+        today = now.date()
+        diff = (today - last_date).days
+        if diff == 0:
+            pass  # already logged in today
+        elif diff == 1:
+            user.streak = (user.streak or 0) + 1
+        else:
+            user.streak = 1
+    user.last_login = now
+
+    from .api.leaderboard import get_rank
+    user.rank_title = get_rank(user.xp or 0)
+    sess.commit()
+
     access = create_access_token(data={"sub": str(user.id)})
     return {"access_token": access, "token_type": "bearer"}
 
@@ -80,4 +103,14 @@ def require_user(user=Depends(get_current_user)):
 def me(user=Depends(get_current_user)):
     if not user:
         raise HTTPException(status_code=401, detail="Unauthorized")
-    return {"id": user.id, "email": user.email, "display_name": user.display_name, "xp": user.xp}
+    from .api.leaderboard import get_rank
+    return {
+        "id": user.id,
+        "email": user.email,
+        "display_name": user.display_name,
+        "xp": user.xp or 0,
+        "streak": user.streak or 1,
+        "rank_title": user.rank_title or get_rank(user.xp or 0),
+        "last_login": user.last_login.isoformat() if user.last_login else None,
+    }
+

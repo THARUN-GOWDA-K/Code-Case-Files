@@ -68,6 +68,9 @@ class User(Base):
     display_name = Column(String(255))
     password_hash = Column(String(255))
     xp = Column(Integer, default=0)
+    streak = Column(Integer, default=0)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    rank_title = Column(String(100), default="Rookie Detective")
 
 
 class Attempt(Base):
@@ -82,6 +85,42 @@ class Attempt(Base):
     score = Column(Integer, default=0)
     tests_passed = Column(Integer, default=0)
     total_tests = Column(Integer, default=0)
+
+
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    icon = Column(String(50), default="🎁")
+    cost_xp = Column(Integer, nullable=False)
+    effect_type = Column(String(100))  # 'hint_token', 'xp_boost', 'skip', 'cosmetic', 'schema_reveal'
+    category = Column(String(50), default="utility")  # 'hints', 'utility', 'boosts', 'cosmetics'
+    is_active = Column(Boolean, default=True)
+
+class PlayerInventory(Base):
+    __tablename__ = "player_inventory"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("shop_items.id"), nullable=False)
+    quantity = Column(Integer, default=1)
+    purchased_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+    id = Column(Integer, primary_key=True)
+    slug = Column(String(100), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    icon = Column(String(50), default="🏆")
+    xp_reward = Column(Integer, default=0)
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    achievement_id = Column(Integer, ForeignKey("achievements.id"), nullable=False)
+    unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 def create_tables():

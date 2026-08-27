@@ -1,17 +1,28 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import Editor from '../components/Editor'
-import { getSqlStage, submitSqlQuery, listSqlCases } from '../lib/sqlCases'
+import NpcAdvisor, { NpcCharacter, NpcHint } from '../components/NpcAdvisor'
+import CaseClosedOverlay from '../components/CaseClosedOverlay'
+import { getSqlStage, submitSqlQuery, listSqlCases, getSqlCase } from '../lib/sqlCases'
 import { useAuth } from '../contexts/AuthContext'
 import { useToast } from '../contexts/ToastContext'
 
 type StageDetail = {
-  id: number; order: number; title: string
-  prompt?: string; schema_description?: string
-  xp_reward: number; hints: string[]
+  id: number
+  order: number
+  title: string
+  prompt?: string
+  schema_description?: string
+  xp_reward: number
+  hints: string[]
+  npc_hints?: NpcHint[]
 }
 type SqlCaseWithStages = {
-  id: number; slug: string; title: string
+  id: number
+  slug: string
+  title: string
+  epilogue_text?: string
+  npc_characters?: NpcCharacter[]
   stages: Array<{ id: number; order: number; title: string }>
 }
 type SubmitResult = {
@@ -24,11 +35,12 @@ type SubmitResult = {
 export default function SqlStageView() {
   const { id } = useParams<{ id: string }>()
   const stageId = Number(id)
-  const { refreshUser } = useAuth()
+  const { user, refreshUser } = useAuth()
   const { showToast } = useToast()
 
   const [stage, setStage] = useState<StageDetail | null>(null)
   const [allCases, setAllCases] = useState<SqlCaseWithStages[]>([])
+  const [currentCaseFull, setCurrentCaseFull] = useState<SqlCaseWithStages | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [query, setQuery] = useState('SELECT *\nFROM suspects\nWHERE attended = 1\nORDER BY name ASC;\n')
@@ -36,6 +48,7 @@ export default function SqlStageView() {
   const [result, setResult] = useState<SubmitResult | null>(null)
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [showHints, setShowHints] = useState(false)
+  const [showCaseClosed, setShowCaseClosed] = useState(false)
 
   useEffect(() => {
     if (!stageId) return
@@ -48,6 +61,7 @@ export default function SqlStageView() {
     listSqlCases().then(setAllCases).catch(() => {})
   }, [])
 
+  // Find current case
   const currentCase = allCases.find(c => c.stages.some(s => s.id === stageId))
   const sortedStages = currentCase ? [...currentCase.stages].sort((a, b) => a.order - b.order) : []
   const currentIdx = sortedStages.findIndex(s => s.id === stageId)
@@ -55,6 +69,13 @@ export default function SqlStageView() {
   const nextStage = !isLastStage ? sortedStages[currentIdx + 1] : null
   const caseIdx = allCases.findIndex(c => c.id === currentCase?.id)
   const nextCase = caseIdx >= 0 && caseIdx < allCases.length - 1 ? allCases[caseIdx + 1] : null
+
+  // Fetch full case to get NPC characters and epilogue
+  useEffect(() => {
+    if (currentCase?.slug) {
+      getSqlCase(currentCase.slug).then(setCurrentCaseFull).catch(() => {})
+    }
+  }, [currentCase?.slug])
 
   async function handleSubmit() {
     if (!stageId || !query.trim()) return
@@ -69,8 +90,11 @@ export default function SqlStageView() {
       } else {
         setResult(res as SubmitResult)
         if (res.correct) {
-          showToast(res.xp_awarded > 0 ? `Case resolved! +${res.xp_awarded} XP earned.` : 'Correct! Already solved.', 'success')
+          showToast(res.xp_awarded > 0 ? 'Stage solved! +' + res.xp_awarded + ' XP earned.' : 'Correct! Already solved.', 'success')
           if (res.xp_awarded > 0) await refreshUser()
+          if (isLastStage) {
+            setShowCaseClosed(true)
+          }
         } else {
           showToast('Not quite — check your query logic.', 'info')
         }
@@ -114,9 +138,27 @@ export default function SqlStageView() {
   )
 
   const resultColumns = result && result.result_rows.length > 0 ? Object.keys(result.result_rows[0]) : []
+  const npcChars = currentCaseFull?.npc_characters || [
+    { id: 'blake', name: 'Commissioner Blake', avatar: '👮', title: 'Metropolitan Police Commissioner' },
+    { id: 'maya', name: 'Dr. Maya Chen', avatar: '👩‍🔬', title: 'Tech Forensics Expert' },
+    { id: 'riya', name: 'Riya Sharma', avatar: '👩‍💼', title: 'Junior Detective' },
+  ]
 
   return (
     <div style={{ animation: 'fadeIn 350ms ease' }}>
+      {/* Case Closed Modal Overlay */}
+      {showCaseClosed && (
+        <CaseClosedOverlay
+          caseTitle={currentCase?.title || 'Case Investigation'}
+          epilogueText={currentCaseFull?.epilogue_text}
+          xpEarned={result?.xp_awarded || 0}
+          nextCaseSlug={nextCase?.slug}
+          nextCaseTitle={nextCase?.title}
+          commissionerMessage={nextCase ? 'Outstanding deduction on this case, Detective. But our work is never done — report to the briefing room for the next file.' : 'Spectacular work, Detective. You have solved all active cases in the docket.'}
+          onClose={() => setShowCaseClosed(false)}
+        />
+      )}
+
       {/* Breadcrumb */}
       <div style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
         <Link to="/sql-cases" style={{
@@ -128,7 +170,7 @@ export default function SqlStageView() {
         {currentCase && (
           <>
             <span style={{ color: 'var(--c-text-faint)' }}>/</span>
-            <Link to={`/sql-cases/${currentCase.slug}`} style={{
+            <Link to={'/sql-cases/' + currentCase.slug} style={{
               fontFamily: 'var(--font-display)', fontSize: '0.78rem', fontWeight: 600,
               letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--c-text-muted)', textDecoration: 'none',
             }}>
@@ -140,7 +182,7 @@ export default function SqlStageView() {
 
       <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'flex-start', flexWrap: 'wrap' }}>
 
-        {/* LEFT: Prompt + schema + hints */}
+        {/* LEFT: Prompt + Advisors + schema + hints */}
         <div style={{ flex: '0 0 380px', minWidth: 300 }}>
           {/* Stage heading */}
           <div style={{ marginBottom: '1.5rem' }}>
@@ -165,7 +207,7 @@ export default function SqlStageView() {
               {sortedStages.map(s => {
                 const active = s.id === stageId
                 return (
-                  <Link key={s.id} to={`/sql-stages/${s.id}`} style={{
+                  <Link key={s.id} to={'/sql-stages/' + s.id} style={{
                     padding: '0.3rem 0.7rem',
                     borderRadius: 'var(--r-full)',
                     fontFamily: 'var(--font-display)',
@@ -175,11 +217,11 @@ export default function SqlStageView() {
                     textTransform: 'uppercase',
                     textDecoration: 'none',
                     background: active ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.04)',
-                    border: `1px solid ${active ? 'rgba(251,191,36,0.3)' : 'var(--c-border)'}`,
+                    border: '1px solid ' + (active ? 'rgba(251,191,36,0.3)' : 'var(--c-border)'),
                     color: active ? 'var(--c-amber)' : 'var(--c-text-faint)',
                     transition: 'all 200ms ease',
                   }}>
-                    {s.order}
+                    Stage {s.order}
                   </Link>
                 )
               })}
@@ -191,6 +233,15 @@ export default function SqlStageView() {
             <div className="official-memo" style={{ marginBottom: '1.5rem' }}>
               {stage.prompt}
             </div>
+          )}
+
+          {/* NPC Advisors */}
+          {stage.npc_hints && stage.npc_hints.length > 0 && (
+            <NpcAdvisor
+              characters={npcChars}
+              npcHints={stage.npc_hints}
+              userXp={user?.xp ?? 0}
+            />
           )}
 
           {/* Schema */}
@@ -221,15 +272,15 @@ export default function SqlStageView() {
             </div>
           )}
 
-          {/* Hints */}
-          {stage.hints.length > 0 && (
+          {/* Regular Hints */}
+          {stage.hints && stage.hints.length > 0 && (
             <div style={{ marginBottom: '1.5rem' }}>
               <button
                 onClick={() => setShowHints(v => !v)}
                 className="btn btn-ghost btn-sm"
                 style={{ width: '100%', justifyContent: 'space-between' }}
               >
-                <span>🔎 Evidence Files ({stage.hints.length})</span>
+                <span>🔎 Clue Notes ({stage.hints.length})</span>
                 <span style={{ transition: 'transform 200ms ease', transform: showHints ? 'rotate(180deg)' : 'none' }}>▼</span>
               </button>
               {showHints && (
@@ -243,9 +294,9 @@ export default function SqlStageView() {
                       animation: 'fadeIn 300ms ease',
                     }}>
                       <div style={{ fontFamily: 'var(--font-display)', fontSize: '0.68rem', fontWeight: 700, color: 'var(--c-amber)', marginBottom: '0.3rem', letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-                        Evidence #{i + 1}
+                        Clue #{i + 1}
                       </div>
-                      <div className="redacted-text" style={{ fontSize: '0.85rem', display: 'inline' }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--c-text-muted)', lineHeight: 1.5 }}>
                         {h}
                       </div>
                     </div>
@@ -258,12 +309,12 @@ export default function SqlStageView() {
           {/* Navigation */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {nextStage && (
-              <Link to={`/sql-stages/${nextStage.id}`} className="btn btn-primary" style={{ justifyContent: 'center' }}>
+              <Link to={'/sql-stages/' + nextStage.id} className="btn btn-primary" style={{ justifyContent: 'center' }}>
                 Next Stage →
               </Link>
             )}
             {isLastStage && nextCase && (
-              <Link to={`/sql-cases/${nextCase.slug}`} className="btn btn-success" style={{ justifyContent: 'center' }}>
+              <Link to={'/sql-cases/' + nextCase.slug} className="btn btn-success" style={{ justifyContent: 'center' }}>
                 Next Case →
               </Link>
             )}
@@ -336,13 +387,13 @@ export default function SqlStageView() {
 
           {/* Result verdict */}
           {result && (
-            <div className={`verdict-banner ${result.correct ? 'verdict-success' : 'verdict-error'}`} style={{ marginTop: '1rem' }}>
+            <div className={'verdict-banner ' + (result.correct ? 'verdict-success' : 'verdict-error')} style={{ marginTop: '1rem' }}>
               <span style={{ fontSize: '1.4rem', flexShrink: 0 }}>
                 {result.correct ? '✅' : '❌'}
               </span>
               <div>
                 <div style={{ fontWeight: 700, marginBottom: '0.2rem' }}>
-                  {result.correct ? 'CASE RESOLVED' : 'INCONCLUSIVE'}
+                  {result.correct ? 'STAGE COMPLETED' : 'INCONCLUSIVE'}
                 </div>
                 <div style={{
                   fontFamily: 'var(--font-body)', fontWeight: 400,

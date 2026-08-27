@@ -1,5 +1,6 @@
-slug: "case-001-the-missing-funds"
+﻿slug: "case-001-the-missing-funds"
 title: "Case #001 — The Missing Funds"
+chapter: 1
 difficulty: "easy"
 story_intro: |
   A prestigious auction house, Hartwell & Sons, has reported that £47,000
@@ -9,10 +10,35 @@ story_intro: |
   damaged server — your job is to query it and find the culprit.
 
   You have access to two tables:
-    • suspects  — everyone who attended the gala
-    • transactions — every payment processed that night
+    * suspects  — everyone who attended the gala
+    * transactions — every payment processed that night
 
   Good luck, Detective.
+
+intro_dialogue: |
+  Commissioner Blake leans back and slides a manila folder across the desk.
+  "First case, Detective. Simple brief: £47,000 vanished from the Hartwell gala last Tuesday.
+  Three suspects, one night, one server's worth of data. Dr. Chen from forensics will walk you through the database."
+
+epilogue_text: |
+  Case closed. Marcus Hale attempted to launder £47,000 through the auction house's own
+  transaction system — bold, but ultimately traceable. As Commissioner Blake slaps the file
+  shut, his phone rings. "We've got another one, Detective. Three years old, went cold.
+  But someone's been moving pieces on a chess board we can't see. Get ready."
+
+npc_characters:
+  - id: "blake"
+    name: "Commissioner Blake"
+    avatar: "👮"
+    title: "Metropolitan Police Commissioner"
+  - id: "maya"
+    name: "Dr. Maya Chen"
+    avatar: "👩‍🔬"
+    title: "Tech Forensics Expert"
+  - id: "riya"
+    name: "Riya Sharma"
+    avatar: "👩‍💼"
+    title: "Junior Detective"
 
 stages:
   - slug: "who-was-there"
@@ -20,7 +46,8 @@ stages:
     title: "Who Was There?"
     prompt: |
       Let's start with the basics. List the full name and role of every
-      person who attended the gala. Order the results by name ascending.
+      person who attended the gala (attended = 1).
+      Order the results by name ascending.
     schema_description: |
       Table: suspects
         id        INTEGER  PRIMARY KEY
@@ -63,26 +90,35 @@ stages:
     order_sensitive: true
     xp_reward: 5
     hints:
-      - "Filter on the 'attended' column to include only gala attendees."
+      - "Filter on the 'attended' column — only include rows where attended = 1."
       - "Use ORDER BY name ASC to sort alphabetically."
+    npc_hints:
+      - character: "blake"
+        dialogue: "Simple first task. Pull up every person who was actually at the gala. The database has an attended flag — use it."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "The suspects table has an attended column (INTEGER). Filter WHERE attended = 1, then SELECT name and role. Don't forget ORDER BY name ASC."
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "Try: SELECT name, role FROM suspects WHERE attended = 1 ORDER BY name — that should get you started!"
+        xp_cost: 0
 
   - slug: "follow-the-money"
     order: 2
     title: "Follow the Money"
     prompt: |
       Something suspicious stands out in the transactions. Find every
-      transaction where the amount exceeded £10,000. Return the suspect's
-      name, the amount, and the description. Order by amount descending.
+      transaction where the amount exceeded 10000. Return the suspect name,
+      the amount, and the description. Order by amount descending.
     schema_description: |
       Table: suspects
         id        INTEGER  PRIMARY KEY
         name      TEXT     Full name
         role      TEXT     Occupation
         attended  INTEGER  Attendance flag
-
       Table: transactions
         id           INTEGER  PRIMARY KEY
-        suspect_id   INTEGER  FK → suspects.id
+        suspect_id   INTEGER  FK to suspects.id
         amount       REAL     Amount in GBP
         description  TEXT     What the transaction was for
         txn_time     TEXT     ISO-8601 timestamp
@@ -121,6 +157,16 @@ stages:
     hints:
       - "You'll need to JOIN suspects and transactions on suspect_id = suspects.id."
       - "Use WHERE t.amount > 10000 to filter large transactions."
+    npc_hints:
+      - character: "blake"
+        dialogue: "Numbers don't lie. One of those transactions is way too large for a charity gala. Find it."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "SELECT s.name, t.amount, t.description FROM suspects s JOIN transactions t ON t.suspect_id = s.id WHERE t.amount > 10000 ORDER BY t.amount DESC"
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "Money in transactions, names in suspects — connect them with a JOIN on suspect_id!"
+        xp_cost: 0
 
   - slug: "name-the-culprit"
     order: 3
@@ -166,3 +212,13 @@ stages:
     hints:
       - "JOIN the two tables, then filter transactions.description = 'Wire transfer out'."
       - "SELECT only the name and role columns from suspects."
+    npc_hints:
+      - character: "blake"
+        dialogue: "This is it. One transaction, suspicious description: 'Wire transfer out'. Find who made it. Make the arrest."
+        xp_cost: 0
+      - character: "maya"
+        dialogue: "JOIN suspects s and transactions t on t.suspect_id = s.id. Filter WHERE t.description = 'Wire transfer out'. Return s.name, s.role."
+        xp_cost: 0
+      - character: "riya"
+        dialogue: "Filter on the description column — look for exactly 'Wire transfer out'. That is your smoking gun!"
+        xp_cost: 0
