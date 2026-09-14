@@ -12,14 +12,11 @@ story_intro: |
   You have access to two tables:
     * suspects  — everyone who attended the gala
     * transactions — every payment processed that night
-
   Good luck, Detective.
-
 intro_dialogue: |
   Commissioner Blake leans back and slides a manila folder across the desk.
   "First case, Detective. Simple brief: £47,000 vanished from the Hartwell gala last Tuesday.
   Three suspects, one night, one server's worth of data. Dr. Chen from forensics will walk you through the database."
-
 epilogue_text: |
   Case closed. Marcus Hale attempted to launder £47,000 through the auction house's own
   transaction system — bold, but ultimately traceable. As Commissioner Blake slaps the file
@@ -90,18 +87,22 @@ stages:
     order_sensitive: true
     xp_reward: 5
     hints:
-      - "Filter on the 'attended' column — only include rows where attended = 1."
-      - "Use ORDER BY name ASC to sort alphabetically."
+      - text: "Start with the suspects table and decide which rows represent people who were present."
+        cost_points: 0
+      - text: "The attendance flag is numeric; keep rows whose attended value is 1, then choose name and role."
+        cost_points: 2
+      - text: "Your final shape needs the name and role columns, filtered by attended = 1 and sorted by name ascending."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "Simple first task. Pull up every person who was actually at the gala. The database has an attended flag — use it."
+        dialogue: "Simple first task. Pull up every person who was actually at the gala. The suspects table marks attendance for you."
         xp_cost: 0
       - character: "maya"
-        dialogue: "The suspects table has an attended column (INTEGER). Filter WHERE attended = 1, then SELECT name and role. Don't forget ORDER BY name ASC."
-        xp_cost: 0
+        dialogue: "The attended field is an INTEGER flag. Treat 1 as present, project only the requested identity fields, and leave sorting until the end."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "Try: SELECT name, role FROM suspects WHERE attended = 1 ORDER BY name — that should get you started!"
-        xp_cost: 0
+        dialogue: "Think in three moves: choose the two requested columns, keep the present suspects, then sort their names A to Z."
+        xp_cost: 5
 
   - slug: "follow-the-money"
     order: 2
@@ -155,18 +156,22 @@ stages:
     order_sensitive: false
     xp_reward: 10
     hints:
-      - "You'll need to JOIN suspects and transactions on suspect_id = suspects.id."
-      - "Use WHERE t.amount > 10000 to filter large transactions."
+      - text: "The amount and description live in transactions, while the suspect's name lives in suspects."
+        cost_points: 0
+      - text: "Connect the tables through transactions.suspect_id and suspects.id, then keep amounts above the threshold."
+        cost_points: 2
+      - text: "Return the suspect name with amount and description, filter amount > 10000, and order the amounts from largest down."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "Numbers don't lie. One of those transactions is way too large for a charity gala. Find it."
+        dialogue: "Numbers don't lie. One transaction is far too large for a charity gala; trace that record back to its suspect."
         xp_cost: 0
       - character: "maya"
-        dialogue: "SELECT s.name, t.amount, t.description FROM suspects s JOIN transactions t ON t.suspect_id = s.id WHERE t.amount > 10000 ORDER BY t.amount DESC"
-        xp_cost: 0
+        dialogue: "Use the foreign-key relationship to bring the suspect name beside each transaction. Apply the numeric threshold before sorting the result."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "Money in transactions, names in suspects — connect them with a JOIN on suspect_id!"
-        xp_cost: 0
+        dialogue: "Money is in transactions and names are in suspects. Join them, keep only the unusually large payment, and report the requested three fields."
+        xp_cost: 5
 
   - slug: "name-the-culprit"
     order: 3
@@ -210,15 +215,19 @@ stages:
     order_sensitive: false
     xp_reward: 15
     hints:
-      - "JOIN the two tables, then filter transactions.description = 'Wire transfer out'."
-      - "SELECT only the name and role columns from suspects."
+      - text: "The decisive label is stored on a transaction, so begin by relating that transaction to its suspect."
+        cost_points: 0
+      - text: "Match the description exactly, then use the linked suspects row for the name and role."
+        cost_points: 2
+      - text: "Join on suspect_id, filter description to the wire-transfer label, and project only the suspect name and role."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "This is it. One transaction, suspicious description: 'Wire transfer out'. Find who made it. Make the arrest."
+        dialogue: "This is it. The suspicious transaction label is your lead; follow its owner back to the suspects file."
         xp_cost: 0
       - character: "maya"
-        dialogue: "JOIN suspects s and transactions t on t.suspect_id = s.id. Filter WHERE t.description = 'Wire transfer out'. Return s.name, s.role."
-        xp_cost: 0
+        dialogue: "The transaction description is an exact text predicate. Once that row is linked through suspect_id, the requested role is available beside the name."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "Filter on the description column — look for exactly 'Wire transfer out'. That is your smoking gun!"
-        xp_cost: 0
+        dialogue: "Look for the exact wire-transfer wording, then let the relationship reveal which suspect made it."
+        xp_cost: 5

@@ -35,6 +35,7 @@ def get_stage(case_id: int, stage_id: int, sess=Depends(models.get_session)):
         "order": stage.order,
         "prompt": stage.prompt,
         "description": stage.description,
+        "starter_code": stage.starter_code,
         "time_limit_seconds": stage.time_limit_seconds,
         "memory_limit_mb": stage.memory_limit_mb
     }

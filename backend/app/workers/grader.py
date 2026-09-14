@@ -32,6 +32,8 @@ def grade_submission(stage_id: int, language: str, source: str, user_id: int | N
         if score == 1.0 and user_id is not None:
             user = sess.query(User).filter_by(id=user_id).first()
             if user:
-                user.xp = (user.xp or 0) + 50
+                multiplier = user.xp_boost_multiplier or 1
+                user.xp = (user.xp or 0) + (50 * multiplier)
+                user.xp_boost_multiplier = 1
 
     return {"score": score, "passed": passed, "total": total, "details": details, "attempt_id": att.id}

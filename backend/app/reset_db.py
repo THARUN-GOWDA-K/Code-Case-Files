@@ -7,6 +7,7 @@ Usage:
 
 import os
 import sys
+import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -16,7 +17,9 @@ from app.seed_cases import seed_additional_cases
 from app.services.cases import seed_sample_case
 
 
-def reset_and_seed():
+def reset_and_seed(confirmed: bool = False):
+    if not confirmed:
+        raise SystemExit("Database reset cancelled. Re-run with --yes to confirm.")
     if DATABASE_URL.startswith("sqlite"):
         db_path = DATABASE_URL.replace("sqlite:///", "")
         if os.path.exists(db_path):
@@ -57,4 +60,6 @@ def reset_and_seed():
 
 
 if __name__ == "__main__":
-    reset_and_seed()
+    parser = argparse.ArgumentParser(description="Drop, recreate, and reseed the Code Case Files database.")
+    parser.add_argument("--yes", action="store_true", help="Confirm destructive database reset")
+    reset_and_seed(confirmed=parser.parse_args().yes)

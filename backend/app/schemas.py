@@ -8,6 +8,7 @@ class StageSummary(BaseModel):
     title: str
     prompt: str | None = None
     description: str | None = None
+    starter_code: str | None = None
 
     class Config:
         orm_mode = True

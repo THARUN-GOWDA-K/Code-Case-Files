@@ -4,7 +4,7 @@ Table name prefix: sqld_  (no collision with existing tables)
 Base is imported from app.models so create_tables() registers these automatically.
 """
 
-from sqlalchemy import Column, Integer, String, Text, JSON, Boolean, DateTime, ForeignKey,UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, JSON, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy import func
 
@@ -53,6 +53,24 @@ class SqldStage(Base):
     submissions = relationship("SqldSubmission", back_populates="stage")
 
     __table_args__ = (UniqueConstraint("case_id", "slug", name="uq_sqld_stage_case_slug"),)
+
+
+class SqldHintUnlock(Base):
+    __tablename__ = "sqld_hint_unlocks"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("sqld_stages.id"), nullable=False)
+    hint_kind = Column(String(20), nullable=False)
+    hint_index = Column(Integer, nullable=False)
+    unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "stage_id", "hint_kind", "hint_index",
+            name="uq_sqld_hint_unlock_user_hint",
+        ),
+    )
 
 
 class SqldSubmission(Base):

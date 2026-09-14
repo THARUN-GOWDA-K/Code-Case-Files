@@ -14,7 +14,6 @@ intro_dialogue: |
   "Three years ago this case broke me, Detective. Victoria Blackwood walked
   because we couldn't prove she was there at the right time. Now we have
   a recovered security log database. Dr. Chen says it's intact. Let's finish this."
-
 epilogue_text: |
   Victoria Blackwood. The necklace was in her possession in Paris — she'd stolen it
   to fund a gambling debt no one knew about. With the security log evidence, extradition
@@ -85,18 +84,22 @@ stages:
     order_sensitive: true
     xp_reward: 10
     hints:
-      - "SELECT name, occupation, last_known_location FROM suspects — no filter needed this time."
-      - "ORDER BY name ASC sorts alphabetically by the first character of the full name."
+      - text: "All persons of interest are already in suspects, so this stage is about selecting profile fields rather than filtering."
+        cost_points: 0
+      - text: "Use name, occupation, and last_known_location as the three output columns, then sort by the full name."
+        cost_points: 2
+      - text: "Read every row from suspects, return exactly those three columns, and apply ascending name order."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "Background checks first. I need names, occupations, and last known locations on all five suspects. Alphabetical — no excuses."
+        dialogue: "Background checks first. I need the three profile facts for every suspect, in a clean alphabetical list."
         xp_cost: 0
       - character: "maya"
-        dialogue: "Simple SELECT on the suspects table. Grab name, occupation, last_known_location. ORDER BY name ASC. No filter needed — all five are persons of interest."
-        xp_cost: 0
+        dialogue: "There is no predicate to infer here: the table is already the complete population. Project the three requested fields and sort the name column ascending."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "All suspects, no WHERE clause needed — just SELECT the right columns and ORDER BY name! You've got this."
-        xp_cost: 0
+        dialogue: "No WHERE clause this time. Take the three profile columns from every suspect and let the names determine the order."
+        xp_cost: 5
 
   - slug: "evidence-analysis"
     order: 2
@@ -142,18 +145,22 @@ stages:
     order_sensitive: true
     xp_reward: 15
     hints:
-      - "Filter WHERE location = 'Main Entrance' AND action_type = 'entry'."
-      - "Return person_name, action_time, action_type — exactly those column names."
+      - text: "The timeline is in security_logs; narrow it to events at the entrance named in the brief."
+        cost_points: 0
+      - text: "The requested people entered, not exited, so combine the location condition with action_type = 'entry'."
+        cost_points: 2
+      - text: "Return person_name, action_time, and action_type for Main Entrance entries, ordered by action_time ascending."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "The security logs don't lie. Who used the Main Entrance that night? Build me a timeline."
+        dialogue: "The security logs don't lie. Isolate the Main Entrance events and show me who entered, in time order."
         xp_cost: 0
       - character: "maya"
-        dialogue: "SELECT person_name, action_time, action_type FROM security_logs WHERE location = 'Main Entrance' AND action_type = 'entry' ORDER BY action_time ASC"
-        xp_cost: 0
+        dialogue: "Use two predicates on security_logs: one for the exact location and one for an entry event. The output needs the actor, timestamp, and event type."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "Check the location column in security_logs — filter for 'Main Entrance' entries only. Note the exact column names: person_name, action_time, action_type!"
-        xp_cost: 0
+        dialogue: "Check location and action_type together. Keep the exact three evidence columns, then arrange the timestamps from earliest to latest."
+        xp_cost: 5
 
   - slug: "final-deduction"
     order: 3
@@ -185,15 +192,19 @@ stages:
     order_sensitive: false
     xp_reward: 20
     hints:
-      - "Filter WHERE is_primary = 1 to find the primary suspect."
-      - "SELECT name and last_known_location — those are the two columns you need."
+      - text: "The suspects table carries a flag identifying the person the case file calls primary."
+        cost_points: 0
+      - text: "Use the numeric is_primary flag as your filter and keep the suspect's location beside the name."
+        cost_points: 2
+      - text: "Return name and last_known_location from the row where is_primary equals 1."
+        cost_points: 5
     npc_hints:
       - character: "blake"
-        dialogue: "Victoria Blackwood was found with the necklace in Paris. The database will confirm she is our primary suspect. Retrieve her name and location."
+        dialogue: "The recovered evidence points to the primary suspect. Let the database flag identify that row and report where it leads."
         xp_cost: 0
       - character: "maya"
-        dialogue: "SELECT name, last_known_location FROM suspects WHERE is_primary = 1 — clean and simple. The is_primary flag is an INTEGER: 1 means primary suspect."
-        xp_cost: 0
+        dialogue: "is_primary is an INTEGER marker, not text. Filter for its affirmative value, then project only the name and last-known location fields."
+        xp_cost: 2
       - character: "riya"
-        dialogue: "Almost done! Just filter for is_primary = 1 and grab the name and last_known_location. Case closed!"
-        xp_cost: 0
+        dialogue: "Almost done. Find the row marked primary and bring back the two identity-and-location fields the brief requests."
+        xp_cost: 5
