@@ -4,7 +4,7 @@ Table name prefix: sqld_  (no collision with existing tables)
 Base is imported from app.models so create_tables() registers these automatically.
 """
 
-from sqlalchemy import Column, Integer, String, Text, JSON, Boolean, DateTime, ForeignKey,UniqueConstraint
+from sqlalchemy import Column, Integer, String, Text, JSON, Boolean, DateTime, ForeignKey, UniqueConstraint
 from sqlalchemy.orm import relationship
 from sqlalchemy import func
 
@@ -21,6 +21,9 @@ class SqldCase(Base):
     title = Column(String(255), nullable=False)
     story_intro = Column(Text)          # narrative flavour text shown before puzzles
     difficulty = Column(String(50), default="easy")
+    intro_dialogue = Column(Text)
+    epilogue_text = Column(Text)
+    npc_characters = Column(JSON, default=[])
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     stages = relationship("SqldStage", back_populates="case", order_by="SqldStage.order")
@@ -44,11 +47,30 @@ class SqldStage(Base):
     order_sensitive = Column(Boolean, default=False)
     xp_reward = Column(Integer, default=10)
     hints = Column(JSON, default=[])   # list of hint strings
+    npc_hints = Column(JSON, default=[])
 
     case = relationship("SqldCase", back_populates="stages")
     submissions = relationship("SqldSubmission", back_populates="stage")
 
     __table_args__ = (UniqueConstraint("case_id", "slug", name="uq_sqld_stage_case_slug"),)
+
+
+class SqldHintUnlock(Base):
+    __tablename__ = "sqld_hint_unlocks"
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    stage_id = Column(Integer, ForeignKey("sqld_stages.id"), nullable=False)
+    hint_kind = Column(String(20), nullable=False)
+    hint_index = Column(Integer, nullable=False)
+    unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id", "stage_id", "hint_kind", "hint_index",
+            name="uq_sqld_hint_unlock_user_hint",
+        ),
+    )
 
 
 class SqldSubmission(Base):

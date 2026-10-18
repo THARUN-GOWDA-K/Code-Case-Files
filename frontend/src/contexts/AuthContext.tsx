@@ -44,9 +44,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (token: string) => {
     setToken(token)
-    const userData = await getAuthMe()
-    setUser(userData)
-    setLoading(false)
+    try {
+      const userData = await getAuthMe()
+      setUser(userData)
+    } catch (err) {
+      // Transient failure — clear the bad token so the session doesn't get stuck
+      clearToken()
+      setUser(null)
+      throw err  // re-throw so the login form can show the error
+    } finally {
+      setLoading(false)
+    }
   }
 
   const logout = () => {

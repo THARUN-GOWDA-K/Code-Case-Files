@@ -7,6 +7,7 @@ Usage:
 
 import os
 import sys
+import argparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
@@ -16,7 +17,9 @@ from app.seed_cases import seed_additional_cases
 from app.services.cases import seed_sample_case
 
 
-def reset_and_seed():
+def reset_and_seed(confirmed: bool = False):
+    if not confirmed:
+        raise SystemExit("Database reset cancelled. Re-run with --yes to confirm.")
     if DATABASE_URL.startswith("sqlite"):
         db_path = DATABASE_URL.replace("sqlite:///", "")
         if os.path.exists(db_path):
@@ -29,20 +32,27 @@ def reset_and_seed():
         Base.metadata.create_all(bind=engine)
         print("[reset_db] Created all tables")
     else:
+        # MySQL: use text() wrapper required by SQLAlchemy 2.x
+        from sqlalchemy import text as sql_text
+        db_name = engine.url.database
         with engine.connect() as conn:
-            conn.execute("SET FOREIGN_KEY_CHECKS = 0")
+            conn.execute(sql_text("SET FOREIGN_KEY_CHECKS = 0"))
             print("[reset_db] Disabled MySQL foreign key checks")
-            
+
             tables = conn.execute(
-                "SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()"
+                sql_text("SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE()")
             ).fetchall()
             for (table,) in tables:
-                conn.execute(f"TRUNCATE TABLE {table}")
-                print(f"[reset_db] Truncated {table}")
-            
-            conn.execute("SET FOREIGN_KEY_CHECKS = 1")
+                conn.execute(sql_text(f"DROP TABLE IF EXISTS `{table}`"))
+                print(f"[reset_db] Dropped table {table}")
+
+            conn.execute(sql_text("SET FOREIGN_KEY_CHECKS = 1"))
             print("[reset_db] Re-enabled MySQL foreign key checks")
             conn.commit()
+
+        # Recreate all tables from current models
+        Base.metadata.create_all(bind=engine)
+        print("[reset_db] Created all tables (MySQL)")
 
     print("[reset_db] Loading SQL cases from YAML...")
     load_all_cases()
@@ -57,4 +67,6 @@ def reset_and_seed():
 
 
 if __name__ == "__main__":
-    reset_and_seed()
+    parser = argparse.ArgumentParser(description="Drop, recreate, and reseed the Code Case Files database.")
+    parser.add_argument("--yes", action="store_true", help="Confirm destructive database reset")
+    reset_and_seed(confirmed=parser.parse_args().yes)

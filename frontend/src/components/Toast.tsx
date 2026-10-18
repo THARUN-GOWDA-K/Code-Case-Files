@@ -11,19 +11,27 @@ export default function Toast({ message, type = 'info', onClose, index = 0 }: To
   const [visible, setVisible] = useState(false)
   const [exiting, setExiting] = useState(false)
 
+  const onCloseRef = React.useRef(onClose)
+  onCloseRef.current = onClose
+
   useEffect(() => {
     // Slight delay before appearing for stagger effect
     const enterTimer = setTimeout(() => setVisible(true), 10)
+    let exitDismissTimer: ReturnType<typeof setTimeout> | null = null
     const exitTimer = setTimeout(() => {
       setExiting(true)
-      setTimeout(onClose, 350)
+      exitDismissTimer = setTimeout(() => onCloseRef.current(), 350)
     }, 4000)
-    return () => { clearTimeout(enterTimer); clearTimeout(exitTimer) }
-  }, [onClose])
+    return () => {
+      clearTimeout(enterTimer)
+      clearTimeout(exitTimer)
+      if (exitDismissTimer) clearTimeout(exitDismissTimer)
+    }
+  }, [])
 
   const handleClose = () => {
     setExiting(true)
-    setTimeout(onClose, 350)
+    setTimeout(() => onCloseRef.current(), 350)
   }
 
   const config = {
