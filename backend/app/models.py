@@ -1,12 +1,15 @@
 import os
-from sqlalchemy import (Column, Integer, String, Text, ForeignKey, JSON, DateTime, Boolean)
+from pathlib import Path
+from sqlalchemy import (Column, Integer, String, Text, ForeignKey, JSON, DateTime, Boolean, UniqueConstraint)
 from sqlalchemy.orm import declarative_base, relationship, sessionmaker
 from sqlalchemy import create_engine, func
 from contextlib import contextmanager
 
 # Database connection URL. Default to local SQLite fallback.
 # For MySQL use: mysql+pymysql://user:password@localhost:3306/codecase
-DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///./dev.db")
+BACKEND_ROOT = Path(__file__).resolve().parents[1]
+DEFAULT_SQLITE_PATH = BACKEND_ROOT / "dev.db"
+DATABASE_URL = os.environ.get("DATABASE_URL", f"sqlite:///{DEFAULT_SQLITE_PATH.as_posix()}")
 
 engine = create_engine(DATABASE_URL, echo=False, future=True)
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
@@ -31,6 +34,7 @@ class Stage(Base):
     title = Column(String(255))
     prompt = Column(Text, nullable=True)
     description = Column(Text, nullable=True)
+    starter_code = Column(Text, nullable=True)
     order = Column(Integer, default=1)
     time_limit_seconds = Column(Integer, default=2)
     memory_limit_mb = Column(Integer, default=256)
@@ -54,11 +58,19 @@ class Hint(Base):
     id = Column(Integer, primary_key=True)
     stage_id = Column(Integer, ForeignKey("stages.id"))
     text = Column(Text)
-    unlock_after_attempts = Column(Integer, default=0)
-    unlock_after_time_seconds = Column(Integer, nullable=True)
     cost_points = Column(Integer, default=0)
     order = Column(Integer, default=0)
     stage = relationship("Stage", backref="hints")
+
+
+class HintUnlock(Base):
+    __tablename__ = "hint_unlocks"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    hint_id = Column(Integer, ForeignKey("hints.id"), nullable=False)
+    unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    __table_args__ = (UniqueConstraint("user_id", "hint_id", name="uq_hint_unlock_user_hint"),)
 
 
 class User(Base):
@@ -68,6 +80,10 @@ class User(Base):
     display_name = Column(String(255))
     password_hash = Column(String(255))
     xp = Column(Integer, default=0)
+    xp_boost_multiplier = Column(Integer, default=1)
+    streak = Column(Integer, default=0)
+    last_login = Column(DateTime(timezone=True), nullable=True)
+    rank_title = Column(String(100), default="Rookie Detective")
 
 
 class Attempt(Base):
@@ -82,6 +98,42 @@ class Attempt(Base):
     score = Column(Integer, default=0)
     tests_passed = Column(Integer, default=0)
     total_tests = Column(Integer, default=0)
+
+
+class ShopItem(Base):
+    __tablename__ = "shop_items"
+    id = Column(Integer, primary_key=True)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    icon = Column(String(50), default="🎁")
+    cost_xp = Column(Integer, nullable=False)
+    effect_type = Column(String(100))  # 'hint_token' or 'xp_boost'
+    category = Column(String(50), default="utility")  # 'hints' or 'boosts'
+    is_active = Column(Boolean, default=True)
+
+class PlayerInventory(Base):
+    __tablename__ = "player_inventory"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    item_id = Column(Integer, ForeignKey("shop_items.id"), nullable=False)
+    quantity = Column(Integer, default=1)
+    purchased_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class Achievement(Base):
+    __tablename__ = "achievements"
+    id = Column(Integer, primary_key=True)
+    slug = Column(String(100), unique=True, nullable=False)
+    name = Column(String(255), nullable=False)
+    description = Column(Text)
+    icon = Column(String(50), default="🏆")
+    xp_reward = Column(Integer, default=0)
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    achievement_id = Column(Integer, ForeignKey("achievements.id"), nullable=False)
+    unlocked_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
 def create_tables():

@@ -130,9 +130,27 @@ def run_query(
     return [], False
 
 
+def _normalise_value(v: Any) -> str:
+    """Normalize a value for comparison: booleans → int string, everything else → str."""
+    if isinstance(v, bool):
+        return str(int(v))
+    return str(v)
+
+
 def _normalise(rows: List[Dict[str, Any]]) -> List[frozenset]:
-    """Convert rows to frozensets of items for order-insensitive comparison."""
-    return [frozenset((k, str(v)) for k, v in row.items()) for row in rows]
+    """Convert rows to frozensets of (key, normalised_string_value) pairs."""
+    return [frozenset((k, _normalise_value(v)) for k, v in row.items()) for row in rows]
+
+
+def _normalise_expected(rows: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Convert YAML-loaded expected rows: Python booleans → integers."""
+    out = []
+    for row in rows:
+        out.append({
+            k: (1 if v is True else 0 if v is False else v)
+            for k, v in row.items()
+        })
+    return out
 
 
 def compare_results(
@@ -140,7 +158,37 @@ def compare_results(
     expected: List[Dict[str, Any]],
     order_sensitive: bool = False,
 ) -> bool:
-    """Return True if actual matches expected."""
+    """
+    Return True if actual matches expected.
+
+    Improvements over naive equality:
+    - Only checks the columns present in expected_result (extra columns in
+      the player's query are ignored, so SELECT * still passes).
+    - Normalises Python booleans from YAML (True/False) to integers (1/0)
+      before comparison so they match SQLite's INTEGER storage.
+    """
+    if not expected and not actual:
+        return True
+    if not expected or not actual:
+        return False
+
+    # Normalise YAML booleans in expected result
+    norm_expected = _normalise_expected(expected)
+
+    # Determine which columns we care about (from first expected row)
+    expected_keys = set(norm_expected[0].keys())
+
+    # Project actual rows to only the expected columns
+    projected_actual = [
+        {k: v for k, v in row.items() if k in expected_keys}
+        for row in actual
+    ]
+
+    # Row count must match
+    if len(projected_actual) != len(norm_expected):
+        return False
+
     if order_sensitive:
-        return actual == expected
-    return sorted(_normalise(actual), key=str) == sorted(_normalise(expected), key=str)
+        return _normalise(projected_actual) == _normalise(norm_expected)
+    return sorted(_normalise(projected_actual), key=str) == sorted(_normalise(norm_expected), key=str)
+

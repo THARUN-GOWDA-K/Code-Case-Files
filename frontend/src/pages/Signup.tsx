@@ -195,6 +195,7 @@ export default function Signup() {
                 <button
                   type="button"
                   onClick={() => setShowPass(p => !p)}
+                  aria-label={showPass ? 'Hide password' : 'Show password'}
                   style={{
                     position: 'absolute', right: '0.75rem', top: '50%',
                     transform: 'translateY(-50%)', background: 'none',
